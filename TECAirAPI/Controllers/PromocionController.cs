@@ -29,6 +29,13 @@ public class PromocionController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var result = await _promocionService.GetById(id);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Crear(Promocion promocion)
     {
@@ -36,8 +43,15 @@ public class PromocionController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Actualizar(int id, Promocion promocion)
+    {
+        var result = await _promocionService.ActualizarPromocion(id, promocion);
+        return Ok(result);
+    }
+
     [HttpDelete("{id}")]
-    public async Task<IActionResult> EliminarPromocion(int id)
+    public async Task<IActionResult> Eliminar(int id)
     {
         var result = await _promocionService.EliminarPromocion(id);
         return Ok(result);

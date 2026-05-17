@@ -23,9 +23,19 @@ public class PromocionService : IPromocionService
         return await _promocionRepo.GetAll();
     }
 
+    public async Task<Promocion> GetById(int idPromocion)
+    {
+        return await _promocionRepo.GetById(idPromocion);
+    }
+
     public async Task<IEnumerable<Promocion>> CrearPromocion(Promocion promocion)
     {
         return await _promocionRepo.PostPromocion(promocion);
+    }
+
+    public async Task<Promocion> ActualizarPromocion(int idPromocion, Promocion promocion)
+    {
+        return await _promocionRepo.PutPromocion(idPromocion, promocion);
     }
 
     public async Task<IEnumerable<Promocion>> EliminarPromocion(int idPromocion)
