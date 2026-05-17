@@ -20,6 +20,10 @@ builder.Services.AddScoped<IAeropuertoService, AeropuertoService>();
 builder.Services.AddScoped<IPromocionRepository, PromocionRepository>();
 builder.Services.AddScoped<IPromocionService, PromocionService>();
 
+//Rutas y vuelos
+builder.Services.AddScoped<IRutaRepository, RutaRepository>();
+builder.Services.AddScoped<IRutaService, RutaService>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();

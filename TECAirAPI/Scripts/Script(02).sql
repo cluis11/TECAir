@@ -45,6 +45,43 @@ INSERT INTO avion (matricula, capacidad) VALUES
 --FROM generate_series(1, 5) f,
 --     unnest(ARRAY['A','B','C','D','E','F']) c;
 
-SELECT * 
-FROM puerta AS p, aeropuerto AS a
-WHERE p.id_aeropuerto = a.id_aeropuerto
+-- ------------------------------------------------------------
+-- RUTAS y VUELOS
+-- ------------------------------------------------------------
+
+-- Ruta 1: SJO → PTY (vuelo directo, sin escalas)
+INSERT INTO ruta (id_origen, id_destino, precio) VALUES (1, 3, 200.00);
+INSERT INTO vuelo (id_ruta, id_origen, id_destino, matricula) VALUES
+(1, 1, 3, 'TEC-001');
+ 
+-- Ruta 2: SJO → BOG (una escala en PTY)
+INSERT INTO ruta (id_origen, id_destino, precio) VALUES (1, 4, 320.00);
+INSERT INTO vuelo (id_ruta, id_origen, id_destino, matricula) VALUES
+(2, 1, 3, 'TEC-001'),   -- SJO → PTY
+(2, 3, 4, 'TEC-002');   -- PTY → BOG
+ 
+-- Ruta 3: SJO → GUA (dos escalas: PTY y BOG)
+INSERT INTO ruta (id_origen, id_destino, precio) VALUES (1, 5, 450.00);
+INSERT INTO vuelo (id_ruta, id_origen, id_destino, matricula) VALUES
+(3, 1, 3, 'TEC-001'),   -- SJO → PTY
+(3, 3, 4, 'TEC-002'),   -- PTY → BOG
+(3, 4, 5, 'TEC-001');   -- BOG → GUA
+
+-- ------------------------------------------------------------
+-- PROMOCIONES
+-- ------------------------------------------------------------
+ 
+INSERT INTO promocion (id_ruta, porcentaje, inicio, fin, imagen) VALUES
+(1, 15.00, '2026-05-01', '2026-06-30', NULL),
+(3, 10.00, '2026-06-01', '2026-07-31', NULL);
+
+-- ------------------------------------------------------------
+-- VERIFICACION
+-- ------------------------------------------------------------
+ 
+SELECT * FROM aeropuerto;
+SELECT * FROM avion;
+SELECT * FROM asiento;
+SELECT * FROM ruta;
+SELECT * FROM vuelo;
+SELECT * FROM promocion;
