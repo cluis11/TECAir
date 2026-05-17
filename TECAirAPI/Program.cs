@@ -16,6 +16,9 @@ builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IAeropuertoRepository, AeropuertoRepository>();
 builder.Services.AddScoped<IAeropuertoService, AeropuertoService>();
 
+// Promocion
+builder.Services.AddScoped<IPromocionRepository, PromocionRepository>();
+builder.Services.AddScoped<IPromocionService, PromocionService>();
 
 var app = builder.Build();
 

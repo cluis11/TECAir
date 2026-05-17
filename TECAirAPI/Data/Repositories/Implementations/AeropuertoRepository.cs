@@ -50,7 +50,8 @@ public class AeropuertoRepository : IAeropuertoRepository
     {
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
-        using var cmd = new NpgsqlCommand("SELECT * FROM avion", conn);
+        using var cmd = new NpgsqlCommand(
+            "SELECT * FROM avion", conn);
         using var reader = await cmd.ExecuteReaderAsync();
         var aviones = new List<Avion>();
         while (await reader.ReadAsync())        
@@ -60,7 +61,7 @@ public class AeropuertoRepository : IAeropuertoRepository
         return aviones;
     }
 
-    public static Aeropuerto MapAeropuerto(NpgsqlDataReader reader)
+    private static Aeropuerto MapAeropuerto(NpgsqlDataReader reader)
     {
         return new Aeropuerto
         {
@@ -72,7 +73,7 @@ public class AeropuertoRepository : IAeropuertoRepository
         };
     }
 
-    public static PuertasAeropuerto MapPuerta(NpgsqlDataReader reader)
+    private PuertasAeropuerto MapPuerta(NpgsqlDataReader reader)
     {
         return new PuertasAeropuerto
         {
@@ -81,7 +82,7 @@ public class AeropuertoRepository : IAeropuertoRepository
         };
     }
 
-    public static Avion MapAvion(NpgsqlDataReader reader)
+    private static Avion MapAvion(NpgsqlDataReader reader)
     {
         return new Avion
         {
