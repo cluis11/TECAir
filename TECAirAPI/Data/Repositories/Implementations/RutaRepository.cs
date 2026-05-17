@@ -119,6 +119,45 @@ public class RutaRepository : IRutaRepository
         return ruta;
     }
 
+    public async Task<Ruta> PutRuta(int id_ruta, Ruta ruta)
+    {
+        // 1 - Actualizar la ruta
+        using (var conn = _db.GetConnection())
+        {
+            await conn.OpenAsync();
+            var cmd = PutRutaCommand(conn, id_ruta, ruta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 2 - Borrar todos los vuelos actuales de la ruta
+        using (var conn = _db.GetConnection())
+        {
+            await conn.OpenAsync();
+            var cmd = new NpgsqlCommand(
+                "DELETE FROM vuelo WHERE id_ruta = @idRuta", conn);
+            cmd.Parameters.AddWithValue("idRuta", id_ruta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 3 - Reinsertar los vuelos actualizados
+        foreach (var vuelo in ruta.vuelos)
+        {
+            vuelo.id_ruta = id_ruta; // Asegurar que el id_ruta esté correcto
+            using var conn = _db.GetConnection();
+            await conn.OpenAsync();
+            using var cmd = CreatePostVueloCommand(conn, vuelo);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                vuelo.id_vuelo = reader.GetInt32(0); // Lee el id generado
+            }
+        }
+
+        // 4 - Retornar la ruta actualizada con sus vuelos
+        ruta.id_ruta = id_ruta;
+        return ruta;
+    }
+
     public async Task<bool> DeleteRuta(int idRuta)
     {
 
@@ -222,6 +261,7 @@ public class RutaRepository : IRutaRepository
         return cmd;
     }
 
+
     private NpgsqlCommand CreatePostVueloCommand(NpgsqlConnection conn, Vuelo vuelo)
     {
         var cmd = new NpgsqlCommand(
@@ -231,6 +271,32 @@ public class RutaRepository : IRutaRepository
         cmd.Parameters.AddWithValue("idOrigen", vuelo.id_origen);
         cmd.Parameters.AddWithValue("idDestino", vuelo.id_destino);
         cmd.Parameters.AddWithValue("matricula", vuelo.matricula);
+        return cmd;
+    }
+
+    // PUT Rutas y Vuelos
+    private NpgsqlCommand PutRutaCommand(NpgsqlConnection conn, int idRuta, Ruta ruta)
+    {
+        var cmd = new NpgsqlCommand(
+            "UPDATE ruta SET id_origen = @origen, id_destino = @destino, precio = @precio " +
+            "WHERE id_ruta = @idRuta", conn);
+        cmd.Parameters.AddWithValue("origen", ruta.id_origen);
+        cmd.Parameters.AddWithValue("destino", ruta.id_destino);
+        cmd.Parameters.AddWithValue("precio", ruta.precio);
+        cmd.Parameters.AddWithValue("idRuta", idRuta);
+        return cmd;
+    }
+
+    private NpgsqlCommand PutVueloCommand(NpgsqlConnection conn, int idVuelo, Vuelo vuelo)
+    {
+        var cmd = new NpgsqlCommand(
+            "UPDATE vuelo SET id_ruta = @idRuta, id_origen = @idOrigen, id_destino = @idDestino, matricula = @matricula " +
+            "WHERE id_vuelo = @idVuelo", conn);
+        cmd.Parameters.AddWithValue("idRuta", vuelo.id_ruta);
+        cmd.Parameters.AddWithValue("idOrigen", vuelo.id_origen);
+        cmd.Parameters.AddWithValue("idDestino", vuelo.id_destino);
+        cmd.Parameters.AddWithValue("matricula", vuelo.matricula);
+        cmd.Parameters.AddWithValue("idVuelo", idVuelo);
         return cmd;
     }
 }

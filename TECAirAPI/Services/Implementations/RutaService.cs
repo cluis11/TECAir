@@ -33,6 +33,11 @@ public class RutaService : IRutaService
         return await _rutaRepo.PostRuta(ruta);
     }
 
+    public async Task<Ruta> ActualizarRuta(int id_ruta, Ruta ruta)
+    {
+        return await _rutaRepo.PutRuta(id_ruta, ruta);
+    }
+
     public async Task<bool> EliminarRuta(int idRuta)
     {
         return await _rutaRepo.DeleteRuta(idRuta);

@@ -43,6 +43,13 @@ public class RutaController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Actualizar(int id, [FromBody] Ruta ruta)
+    {
+        var result = await _rutaService.ActualizarRuta(id, ruta);
+        return Ok(result);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Eliminar(int id)
     {

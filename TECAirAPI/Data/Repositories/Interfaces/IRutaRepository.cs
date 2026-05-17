@@ -8,6 +8,7 @@ public interface IRutaRepository
     Task<IEnumerable<Ruta>> GetById(int idRuta);
     Task<IEnumerable<Ruta>> GetRutas(int origen, int destino);
     Task<Ruta> PostRuta(Ruta ruta);
+    Task<Ruta> PutRuta(int id_ruta, Ruta ruta);
     Task<bool> DeleteRuta(int idRuta);
     Task<IEnumerable<Vuelo>> GetVuelo(int idVuelo);
 }
