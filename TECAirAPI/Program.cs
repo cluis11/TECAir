@@ -12,6 +12,11 @@ builder.Services.AddScoped<IPruebaRepository, PruebaRepository>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
+// Aerpuerto
+builder.Services.AddScoped<IAeropuertoRepository, AeropuertoRepository>();
+builder.Services.AddScoped<IAeropuertoService, AeropuertoService>();
+
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();

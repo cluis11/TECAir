@@ -33,8 +33,8 @@ CREATE TABLE aeropuerto (
 	nombre			VARCHAR(100) NOT NULL,
 	codigo		  	VARCHAR(5) UNIQUE NOT NULL,
 	ciudad			VARCHAR(50) NOT NULL,
-	pais			VARCHAR(50) NOT NULL,
-)
+	pais			VARCHAR(50) NOT NULL
+);
 
 CREATE TABLE puertas_aeropuerto (
 	id_aeropuerto 		INT 		NOT NULL REFERENCES aeropuerto(id_aeropuerto) ON DELETE CASCADE,
@@ -49,7 +49,7 @@ CREATE TABLE avion (
 
 CREATE TABLE asiento (
 	id_asiento	SERIAL PRIMARY KEY,
-	matricual	VARCHAR(20) NOT NULL REFERENCES avion(matricula) ON DELETE CASCADE,
+	matricula	VARCHAR(20) NOT NULL REFERENCES avion(matricula) ON DELETE CASCADE,
 	fila		VARCHAR(5) 	NOT NULL,
 	columna		VARCHAR(5) 	NOT NULL,
 	UNIQUE (matricula, fila, columna)
