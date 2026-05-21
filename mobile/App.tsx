@@ -1,8 +1,15 @@
-import React from 'react';
-import VuelosScreen from './src/screens/VuelosScreen';
+import React, { useState } from 'react';
+import LoginScreen from './src/screens/LogInScreen';
+import RegistroUsuarioScreen from './src/screens/Userscreen';
 
 function App() {
-  return <VuelosScreen />;
+  const [pantalla, setPantalla] = useState('login');
+
+  if (pantalla === 'registro') {
+    return <RegistroUsuarioScreen />;
+  }
+
+  return <LoginScreen onRegister={() => setPantalla('registro')} />;
 }
 
 export default App;
