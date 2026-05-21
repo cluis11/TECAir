@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
-// Importación de tus componentes de página
-import CheckIn from "./pages/check-in";
-import AdminVuelos from "./pages/admin-flight";
-import AdminAeropuerto from "./pages/admin-aeropuerto";
+import CheckIn from "./check-in";
+import AdminVuelos from "./admin-flight";
+import Promo from "./admin-promo";
+import Clientes from "./admin-clientes";
 
 const Admin = () => {
   // Estado para controlar qué sección se muestra
@@ -20,7 +20,6 @@ const Admin = () => {
   return (
     <div className="admin-layout">
 
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <h2>AIR<strong>Tec</strong></h2>
@@ -43,10 +42,16 @@ const Admin = () => {
           </div>
 
           <div 
-            className={`nav-item ${vistaActiva === 'aeropuertos' ? 'active' : ''}`} 
-            onClick={() => setVistaActiva('aeropuertos')}
+            className={`nav-item ${vistaActiva === 'promo' ? 'active' : ''}`} 
+            onClick={() => setVistaActiva('promo')}
           >
-            <span>Aeropuertos</span>
+            <span>Promociones</span>
+          </div>
+          <div 
+            className={`nav-item ${vistaActiva === 'clientes' ? 'active' : ''}`} 
+            onClick={() => setVistaActiva('clientes')}
+          >
+            <span>Clientes</span>
           </div>
 
           <div 
@@ -65,39 +70,42 @@ const Admin = () => {
       {/* CONTENIDO PRINCIPAL */}
       <main className="main-content">
         
-        {/* Vista del Dashboard Principal */}
+        {/* Vista Dashboard */}
         {vistaActiva === 'dashboard' && (
           <>
             <header className="header-title">
-              <h1>¡Bienvenida!</h1>
+              <h1>¡Bienvenido!</h1>
               <p>¿Qué gestión deseas realizar hoy en AIRTec?</p>
             </header>
 
             <div className="admin-cards">
               <div className="card" onClick={() => setVistaActiva('vuelos')}>
-                <div className="card-icon">✈️</div>
                 <h3>Gestión de Vuelos</h3>
                 <p>Crea, edita o cancela rutas y horarios de vuelo.</p>
               </div>
 
-              <div className="card" onClick={() => setVistaActiva('aeropuertos')}>
-                <div className="card-icon">🏢</div>
-                <h3>Aeropuertos</h3>
-                <p>Administra las sedes y terminales de operación.</p>
+              <div className="card" onClick={() => setVistaActiva('promo')}>
+                <h3>Promociones</h3>
+                <p>Administra ofertas de vuelos.</p>
               </div>
 
               <div className="card" onClick={() => setVistaActiva('checkin')}>
-                <div className="card-icon">🆔</div>
                 <h3>Check-in</h3>
                 <p>Supervisa el estado de registro de los pasajeros.</p>
               </div>
+
+              <div className="card" onClick={() => setVistaActiva('clientes')}>
+                <h3>Clientes</h3>
+                <p>Gestiona los clientes registrados.</p>
+              </div>
+              
             </div>
           </>
         )}
 
-        {/* Renderizado condicional de componentes */}
         {vistaActiva === 'vuelos' && <AdminVuelos />}
-        {vistaActiva === 'aeropuertos' && <AdminAeropuerto />}
+        {vistaActiva === 'promo' && <Promo />}
+        {vistaActiva === 'clientes' && <Clientes />}
         {vistaActiva === 'checkin' && <CheckIn />}
         
       </main>
