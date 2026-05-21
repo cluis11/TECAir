@@ -29,7 +29,21 @@ public class AeropuertoRepository : IAeropuertoRepository
         return aeropuertos;
     }
 
-    public async Task <IEnumerable<PuertasAeropuerto>> GetPuertas(int idAeropuerto)
+    public async Task<Aeropuerto> GetById(int id)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand("SELECT * FROM aeropuerto WHERE id_aeropuerto = @id", conn);
+        cmd.Parameters.AddWithValue("id", id);
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return MapAeropuerto(reader);
+        }
+        return null;
+    }
+
+    public async Task <IEnumerable<PuertasAeropuerto>> GetPuertas(int id_aeropuerto)
     {
         var puertas = new List<PuertasAeropuerto>();
 
@@ -37,7 +51,7 @@ public class AeropuertoRepository : IAeropuertoRepository
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
             "SELECT * FROM puertas_aeropuerto AS p WHERE p.id_aeropuerto = @id", conn);
-        cmd.Parameters.AddWithValue("id", idAeropuerto);
+        cmd.Parameters.AddWithValue("id", id_aeropuerto);
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -65,7 +79,7 @@ public class AeropuertoRepository : IAeropuertoRepository
     {
         return new Aeropuerto
         {
-            idAeropuerto = reader.GetInt32(0),
+            id_aeropuerto = reader.GetInt32(0),
             Nombre = reader.GetString(1),
             Codigo = reader.GetString(2),
             Ciudad = reader.GetString(3),

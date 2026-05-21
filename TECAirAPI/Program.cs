@@ -24,6 +24,10 @@ builder.Services.AddScoped<IPromocionService, PromocionService>();
 builder.Services.AddScoped<IRutaRepository, RutaRepository>();
 builder.Services.AddScoped<IRutaService, RutaService>();
 
+// Itinerarios
+builder.Services.AddScoped<IItinerarioRepository, ItinerarioRepository>();
+builder.Services.AddScoped<IItinerarioService, ItinerarioService>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
