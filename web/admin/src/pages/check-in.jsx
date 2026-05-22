@@ -22,7 +22,7 @@ const CheckInPasajeros = () => {
         escalas: 'Bogotá (BOG)', // NO ESTOY SEGURA DE COMO MANEJAR ESCALAS
         puerta: 'Gate 4B',
         horaSalida: '14:30',
-        cantPasajerosComprados: 3 // CANTIDAD DE PASAJEROS COMPRADOS EN LA RESERVA
+        cantPasajerosComprados: 1 // CANTIDAD DE PASAJEROS COMPRADOS EN LA RESERVA
       };
       
       setReservaEncontrada(infoReserva);
@@ -95,7 +95,7 @@ const CheckInPasajeros = () => {
               <p className="mb-1"><strong>Vuelo:</strong> {reservaEncontrada.vuelo} | {reservaEncontrada.origen} → {reservaEncontrada.destino}</p>
               <p className="mb-1"><strong>Horario:</strong> Salida {reservaEncontrada.horaSalida} desde {reservaEncontrada.puerta}</p>
               <p className="mb-0">
-                <strong>Tipo de Viaje:</strong> {reservaEncontrada.tieneEscala ? (
+                <strong> Escala:</strong> {reservaEncontrada.tieneEscala ? (
                   <span className="badge bg-warning text-dark"> {reservaEncontrada.escalas}</span>
                 ) : (
                   <span className="badge bg-success">Directo (Sin Escalas)</span>
