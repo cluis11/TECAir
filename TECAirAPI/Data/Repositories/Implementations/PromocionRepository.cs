@@ -2,6 +2,7 @@ using Npgsql;
 using TECAirAPI.Data.Connection;
 using TECAirAPI.Data.Repositories.Interfaces;
 using TECAirAPI.Models;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Data.Repositories.Implementations;
 
@@ -14,21 +15,41 @@ public class PromocionRepository : IPromocionRepository
         _db = db;
     }
 
-    public async Task<IEnumerable<Promocion>> GetActivas(DateTime fecha)
+    public async Task<IEnumerable<PromocionDTO>> GetActivas(DateTime fecha)
     {
-        var activities = new List<Promocion>();
+        var promociones = new List<PromocionDTO>();
 
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
-            "SELECT * FROM promocion WHERE inicio <= @fecha AND fin >= @fecha", conn);
+            @"SELECT p.id_promo, p.id_ruta, a1.ciudad AS ciudad_origen, a2.ciudad AS ciudad_destino,
+                     r.precio AS precio_original,
+                     ROUND(r.precio * (1 - p.porcentaje / 100), 2) AS precio_promocion,
+                     p.porcentaje, p.inicio, p.fin, p.imagen
+              FROM promocion p
+              JOIN ruta r ON p.id_ruta = r.id_ruta
+              JOIN aeropuerto a1 ON r.id_origen = a1.id_aeropuerto
+              JOIN aeropuerto a2 ON r.id_destino = a2.id_aeropuerto
+              WHERE p.inicio <= @fecha AND p.fin >= @fecha", conn);
         cmd.Parameters.AddWithValue("fecha", fecha);
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            activities.Add(MapPromocion(reader));
+            promociones.Add(new PromocionDTO
+            {
+                IdPromo = reader.GetInt32(0),
+                IdRuta = reader.GetInt32(1),
+                CiudadOrigen = reader.GetString(2),
+                CiudadDestino = reader.GetString(3),
+                PrecioOriginal = reader.GetDecimal(4),
+                PrecioPromocion = reader.GetDecimal(5),
+                Porcentaje = reader.GetDecimal(6),
+                Inicio = reader.GetDateTime(7),
+                Fin = reader.GetDateTime(8),
+                Imagen = reader.IsDBNull(9) ? null : reader.GetString(9)
+            });
         }
-        return activities;
+        return promociones;
     }
 
     public async Task<IEnumerable<Promocion>> GetAll()
@@ -37,8 +58,7 @@ public class PromocionRepository : IPromocionRepository
 
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
-        using var cmd = new NpgsqlCommand(
-            "SELECT * FROM promocion", conn);
+        using var cmd = new NpgsqlCommand("SELECT * FROM promocion", conn);
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
