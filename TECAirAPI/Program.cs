@@ -32,6 +32,11 @@ builder.Services.AddScoped<IItinerarioService, ItinerarioService>();
 builder.Services.AddScoped<IReservaRepository, ReservaRepository>();
 builder.Services.AddScoped<IReservaService, ReservaService>();
 
+// Check-In
+builder.Services.AddScoped<IBoletoRepository, BoletoRepository>();
+builder.Services.AddScoped<ICheckinService, CheckinService>();
+
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>

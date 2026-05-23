@@ -173,3 +173,6 @@ SELECT * FROM ruta;
 SELECT * FROM vuelo;
 SELECT * FROM itinerario;
 SELECT * FROM asiento_itinerario;
+SELECT * FROM boleto;
+SELECT * FROM reserva;
+
