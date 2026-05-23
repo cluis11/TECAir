@@ -149,6 +149,18 @@ INSERT INTO promocion (id_ruta, porcentaje, inicio, fin, imagen) VALUES
 (2, 10.00, '2026-06-01', '2026-07-31', NULL);
 
 -- ------------------------------------------------------------
+-- Usuarios
+-- ------------------------------------------------------------
+
+INSERT INTO usuario (correo, contrasena, nombre, ap1, ap2, telefono) VALUES
+('juan@tec.ac.cr', 'pass1234', 'Juan',  'Pérez',   'López', '88881111'),
+('maria@tec.ac.cr','pass1234', 'María', 'González', 'Mora',  '88882222');
+
+INSERT INTO estudiante (id_usuario, carnet, universidad, millas) VALUES
+(1, '2021123456', 'TEC', 0.0),
+(2, '2022654321', 'TEC', 0.0);
+
+-- ------------------------------------------------------------
 -- VERIFICACION
 -- ------------------------------------------------------------
 
@@ -156,6 +168,7 @@ SELECT * FROM aeropuerto;
 SELECT * FROM avion;
 SELECT * FROM asiento;
 SELECT * FROM usuario;
+SELECT * FROM pasajero;
 SELECT * FROM ruta;
 SELECT * FROM vuelo;
 SELECT * FROM itinerario;
