@@ -163,8 +163,12 @@ const RegistroPromocion = () => {
       if (res.ok) {
         alert('Promocion eliminada con exito.');
         fetchPromociones();
+      } else if (res.status === 404) {
+        alert('Promocion no encontrada.');
+      } else if (res.status === 400) {
+        alert('No se puede eliminar la promocion en este momento.');
       } else {
-        alert('Error al eliminar la promocion.');
+        alert('Ocurrio un error inesperado. Intente de nuevo.');
       }
     } catch (error) {
       alert('No se pudo conectar con el servidor.');
@@ -203,9 +207,12 @@ const RegistroPromocion = () => {
         setPromocion(estadoInicialPromocion);
         setDestinoTocado(false);
         fetchPromociones();
+      } else if (res.status === 400) {
+        alert('Datos invalidos. Verifique que las fechas y el porcentaje sean correctos.');
+      } else if (res.status === 404) {
+        alert('La ruta seleccionada no existe.');
       } else {
-        const error = await res.text();
-        alert(`Error: ${error}`);
+        alert('Ocurrio un error inesperado. Intente de nuevo.');
       }
     } catch (error) {
       alert('No se pudo conectar con el servidor.');
