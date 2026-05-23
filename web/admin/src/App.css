@@ -1,0 +1,134 @@
+/* General */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f0f5f9;
+  color: #333;
+}
+
+/* Layout */
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  background-color: #f0f5f9;
+}
+
+/* SideBar */
+.sidebar {
+  width: 260px;
+  background: #003580;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar-header {
+  text-align: center;
+  padding-bottom: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+.sidebar-header h2 {
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.sidebar-header h2 strong {
+  color: #00a8e8;
+}
+
+/* Nav */
+.nav-menu {
+  padding: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #cdd4e0;
+  transition: 0.3s ease;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, #00a8e8 0%, #003580 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 168, 232, 0.3);
+}
+
+.nav-item span {
+  margin-left: 15px;
+  font-weight: 500;
+}
+
+/* Contenido Principal */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px;
+  background-color: #f0f5f9;
+  background-image: radial-gradient(
+    circle at top right,
+    rgba(0, 168, 232, 0.05),
+    transparent 40%
+  );
+}
+
+/* Dashboard Header */
+.header-title h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #003580;
+}
+
+.header-title p {
+  color: #5d7185;
+}
+
+/* Tarjetas del Dashboard */
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e1e8ed;
+  border-radius: 20px;
+  padding: 25px;
+  transition: 0.3s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: #00a8e8;
+  box-shadow: 0 10px 20px rgba(0, 53, 128, 0.08);
+}
+
+.card h3 {
+  color: #003580;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: #5d7185;
+  font-size: 0.9rem;
+}
