@@ -18,12 +18,24 @@ public class ReservaService : IReservaService
     {
         return await _reservaRepo.PostReserva(reserva);
     }
+
     public async Task<Reserva> ObtenerReserva(int id)
     {
         return await _reservaRepo.GetById(id);
     }
+
     public async Task<IEnumerable<Reserva>> ObtenerPorUsuario(int idUsuario)
     {
         return await _reservaRepo.GetByUsuario(idUsuario);
+    }
+
+    public async Task<bool> PagarReserva(int idReserva)
+    {
+        return await _reservaRepo.PagarReserva(idReserva);
+    }
+
+    public async Task<bool> CancelarReserva(int idReserva)
+    {
+        return await _reservaRepo.CancelarReserva(idReserva);
     }
 }
