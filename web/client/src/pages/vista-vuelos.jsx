@@ -78,7 +78,7 @@ const VistaVuelos = () => {
                                         {resultado.ruta.ciudadOrigen} → {resultado.ruta.ciudadDestino}
                                     </span>
                                     <span className="badge bg-white text-primary ms-2">
-                                        {resultado.ruta.cantidadVuelos === 1 ? 'Directo' : `${resultado.ruta.cantidadVuelos} tramos`}
+                                        {resultado.vuelos.length === 1 ? 'Directo' : `${resultado.vuelos.length} tramos`}
                                     </span>
                                 </div>
                                 <span className="fw-bold fs-4">${resultado.ruta.precio}</span>
