@@ -20,6 +20,9 @@ obj/
 node_modules/
 dist/
 build/
+/.pnp
+.pnp.js
+/coverage
 
 # Logs
 npm-debug.log*

@@ -25,6 +25,17 @@ public class UsuarioRepository : IUsuarioRepository
         {
             results.Add(MapUsuario(reader));
         }
+
+        // Join con estudiante
+        foreach (var usuario in results)
+        {
+            var estudiante = await GetEstudiante(usuario.IdUser);
+            if (estudiante != null)
+            {
+                usuario.EsEstudiante = true;
+                usuario.Estudiante = estudiante;
+            }
+        }
         return results;
     }
 
@@ -35,7 +46,17 @@ public class UsuarioRepository : IUsuarioRepository
         using var cmd = new NpgsqlCommand("SELECT * FROM usuario WHERE id_user = @id", conn);
         cmd.Parameters.AddWithValue("id", id);
         using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync()) return MapUsuario(reader);
+        if (await reader.ReadAsync())
+        {
+            var usuario = MapUsuario(reader);
+            var estudiante = await GetEstudiante(usuario.IdUser);
+            if (estudiante != null)
+            {
+                usuario.EsEstudiante = true;
+                usuario.Estudiante = estudiante;
+            }
+            return usuario;
+        }
         return null;
     }
 
