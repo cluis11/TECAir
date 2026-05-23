@@ -2,6 +2,7 @@ using Npgsql;
 using TECAirAPI.Data.Connection;
 using TECAirAPI.Data.Repositories.Interfaces;
 using TECAirAPI.Models;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Data.Repositories.Implementations;
 
@@ -29,7 +30,6 @@ public class RutaRepository : IRutaRepository
             }
         }
 
-        // Agregar los vuelos a cada ruta
         foreach (var ruta in rutas)
         {
             var vuelos = await GetVuelosRuta(ruta.id_ruta);
@@ -55,7 +55,6 @@ public class RutaRepository : IRutaRepository
             }
         }
 
-        // Agregar los vuelos a cada ruta
         foreach (var ruta in rutas)
         {
             var vuelos = await GetVuelosRuta(ruta.id_ruta);
@@ -71,8 +70,8 @@ public class RutaRepository : IRutaRepository
         using var cmd = new NpgsqlCommand(
             "SELECT * FROM ruta " +
             "WHERE id_origen = @origen AND id_destino = @destino", conn);
-                cmd.Parameters.AddWithValue("origen", origen);
-                cmd.Parameters.AddWithValue("destino", destino);
+        cmd.Parameters.AddWithValue("origen", origen);
+        cmd.Parameters.AddWithValue("destino", destino);
         using var reader = await cmd.ExecuteReaderAsync();
         var rutas = new List<Ruta>();
         while (await reader.ReadAsync())
@@ -80,7 +79,6 @@ public class RutaRepository : IRutaRepository
             rutas.Add(MapRuta(reader));
         }
 
-        // Agregar los vuelos a cada ruta
         foreach (var ruta in rutas)
         {
             var vuelos = await GetVuelosRuta(ruta.id_ruta);
@@ -89,9 +87,37 @@ public class RutaRepository : IRutaRepository
         return rutas;
     }
 
+    public async Task<IEnumerable<RutaResultadoDTO>> GetAllParaPromo()
+    {
+        var rutas = new List<RutaResultadoDTO>();
+
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            @"SELECT r.id_ruta, a1.ciudad AS ciudad_origen, a2.ciudad AS ciudad_destino, r.precio,
+                     COUNT(v.id_vuelo) AS cantidad_vuelos
+              FROM ruta r
+              JOIN aeropuerto a1 ON r.id_origen = a1.id_aeropuerto
+              JOIN aeropuerto a2 ON r.id_destino = a2.id_aeropuerto
+              LEFT JOIN vuelo v ON v.id_ruta = r.id_ruta
+              GROUP BY r.id_ruta, a1.ciudad, a2.ciudad, r.precio", conn);
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            rutas.Add(new RutaResultadoDTO
+            {
+                IdRuta = reader.GetInt32(0),
+                CiudadOrigen = reader.GetString(1),
+                CiudadDestino = reader.GetString(2),
+                Precio = reader.GetDecimal(3),
+                CantidadVuelos = reader.GetInt32(4)
+            });
+        }
+        return rutas;
+    }
+
     public async Task<Ruta> PostRuta(Ruta ruta)
     {
-        // 1 - Insertar la ruta y obtener el id_ruta generado
         int idRuta;
         using (var conn = _db.GetConnection())
         {
@@ -100,28 +126,25 @@ public class RutaRepository : IRutaRepository
             idRuta = (int) await cmd.ExecuteScalarAsync();
         }
 
-        // 2 - Insertar los vuelos asociados a la ruta
         foreach (var vuelo in ruta.vuelos)
         {
-            vuelo.id_ruta = idRuta; // Obtener el id_ruta generado
+            vuelo.id_ruta = idRuta;
             using var conn = _db.GetConnection();
             await conn.OpenAsync();
             using var cmd = CreatePostVueloCommand(conn, vuelo);
             using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                vuelo.id_vuelo = reader.GetInt32(0); // Lee el id generado
+                vuelo.id_vuelo = reader.GetInt32(0);
             }
         }
         
-        // 3 - Retornar la ruta completa con sus vuelos
         ruta.id_ruta = idRuta;
         return ruta;
     }
 
     public async Task<Ruta> PutRuta(int id_ruta, Ruta ruta)
     {
-        // 1 - Actualizar la ruta
         using (var conn = _db.GetConnection())
         {
             await conn.OpenAsync();
@@ -129,60 +152,74 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 2 - Borrar todos los vuelos actuales de la ruta
-        using (var conn = _db.GetConnection())
-        {
-            await conn.OpenAsync();
-            var cmd = new NpgsqlCommand(
-                "DELETE FROM vuelo WHERE id_ruta = @idRuta", conn);
-            cmd.Parameters.AddWithValue("idRuta", id_ruta);
-            await cmd.ExecuteNonQueryAsync();
-        }
-
-        // 3 - Reinsertar los vuelos actualizados
-        foreach (var vuelo in ruta.vuelos)
-        {
-            vuelo.id_ruta = id_ruta; // Asegurar que el id_ruta esté correcto
-            using var conn = _db.GetConnection();
-            await conn.OpenAsync();
-            using var cmd = CreatePostVueloCommand(conn, vuelo);
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                vuelo.id_vuelo = reader.GetInt32(0); // Lee el id generado
-            }
-        }
-
-        // 4 - Retornar la ruta actualizada con sus vuelos
         ruta.id_ruta = id_ruta;
         return ruta;
     }
 
     public async Task<bool> DeleteRuta(int idRuta)
     {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
 
-        // 1 - Eliminar asiento_itinerario
-        // 2 - Eliminar boletos
-        // 3 - Eliminar itinerarios
-        // 4 - Eliminar Promociones
-        // 5 - Eliminar vuelos
-        using (var conn = _db.GetConnection())
+        // 1 - Cerrar itinerarios activos
+        await CerrarItinerariosDeRuta(conn, idRuta);
+
+        // 2 - asiento_itinerario
+        using (var cmd = new NpgsqlCommand(
+            @"DELETE FROM asiento_itinerario 
+              WHERE id_itinerario IN (
+                  SELECT i.id_itinerario FROM itinerario i
+                  JOIN vuelo v ON i.id_vuelo = v.id_vuelo
+                  WHERE v.id_ruta = @idRuta)", conn))
         {
-            await conn.OpenAsync();
-            var cmd = new NpgsqlCommand(
-                "DELETE FROM vuelo WHERE id_ruta = @idRuta", conn);
             cmd.Parameters.AddWithValue("idRuta", idRuta);
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 6 - Eliminar la ruta
-        using (var conn = _db.GetConnection())
+        // 3 - boleto
+        using (var cmd = new NpgsqlCommand(
+            @"DELETE FROM boleto 
+              WHERE id_itinerario IN (
+                  SELECT i.id_itinerario FROM itinerario i
+                  JOIN vuelo v ON i.id_vuelo = v.id_vuelo
+                  WHERE v.id_ruta = @idRuta)", conn))
         {
-            await conn.OpenAsync();
-            using var cmdRuta = new NpgsqlCommand(
-                "DELETE FROM ruta WHERE id_ruta = @idRuta", conn);
-            cmdRuta.Parameters.AddWithValue("idRuta", idRuta);
-            var rows = await cmdRuta.ExecuteNonQueryAsync();
+            cmd.Parameters.AddWithValue("idRuta", idRuta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 4 - itinerario
+        using (var cmd = new NpgsqlCommand(
+            @"DELETE FROM itinerario 
+              WHERE id_vuelo IN (
+                  SELECT id_vuelo FROM vuelo WHERE id_ruta = @idRuta)", conn))
+        {
+            cmd.Parameters.AddWithValue("idRuta", idRuta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 5 - promocion
+        using (var cmd = new NpgsqlCommand(
+            "DELETE FROM promocion WHERE id_ruta = @idRuta", conn))
+        {
+            cmd.Parameters.AddWithValue("idRuta", idRuta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 6 - vuelo
+        using (var cmd = new NpgsqlCommand(
+            "DELETE FROM vuelo WHERE id_ruta = @idRuta", conn))
+        {
+            cmd.Parameters.AddWithValue("idRuta", idRuta);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 7 - ruta
+        using (var cmd = new NpgsqlCommand(
+            "DELETE FROM ruta WHERE id_ruta = @idRuta", conn))
+        {
+            cmd.Parameters.AddWithValue("idRuta", idRuta);
+            var rows = await cmd.ExecuteNonQueryAsync();
             return rows > 0;
         }
     }
@@ -201,6 +238,65 @@ public class RutaRepository : IRutaRepository
             vuelos.Add(MapVuelo(reader));
         }
         return vuelos;
+    }
+
+    public async Task<Vuelo> InsertVuelo(Vuelo vuelo)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = CreatePostVueloCommand(conn, vuelo);
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            vuelo.id_vuelo = reader.GetInt32(0);
+        }
+        return vuelo;
+    }
+
+    public async Task<bool> DeleteVuelo(int idVuelo)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+
+        // 1 - Cerrar itinerarios activos del vuelo
+        await CerrarItinerariosDeVuelo(conn, idVuelo);
+
+        // 2 - asiento_itinerario
+        using (var cmd = new NpgsqlCommand(
+            @"DELETE FROM asiento_itinerario 
+              WHERE id_itinerario IN (
+                  SELECT id_itinerario FROM itinerario WHERE id_vuelo = @idVuelo)", conn))
+        {
+            cmd.Parameters.AddWithValue("idVuelo", idVuelo);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 3 - boleto
+        using (var cmd = new NpgsqlCommand(
+            @"DELETE FROM boleto 
+              WHERE id_itinerario IN (
+                  SELECT id_itinerario FROM itinerario WHERE id_vuelo = @idVuelo)", conn))
+        {
+            cmd.Parameters.AddWithValue("idVuelo", idVuelo);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 4 - itinerario
+        using (var cmd = new NpgsqlCommand(
+            "DELETE FROM itinerario WHERE id_vuelo = @idVuelo", conn))
+        {
+            cmd.Parameters.AddWithValue("idVuelo", idVuelo);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // 5 - vuelo
+        using (var cmd = new NpgsqlCommand(
+            "DELETE FROM vuelo WHERE id_vuelo = @idVuelo", conn))
+        {
+            cmd.Parameters.AddWithValue("idVuelo", idVuelo);
+            var rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
     }
 
     //----------------------------------------------
@@ -223,8 +319,22 @@ public class RutaRepository : IRutaRepository
         return vuelos;
     }
 
+    private async Task CerrarItinerariosDeRuta(NpgsqlConnection conn, int idRuta)
+    {
+        using var cmd = new NpgsqlCommand(
+            "UPDATE itinerario SET estado = 'cerrado' " +
+            "WHERE id_vuelo IN (SELECT id_vuelo FROM vuelo WHERE id_ruta = @idRuta)", conn);
+        cmd.Parameters.AddWithValue("idRuta", idRuta);
+        await cmd.ExecuteNonQueryAsync();
+    }
 
-
+    private async Task CerrarItinerariosDeVuelo(NpgsqlConnection conn, int idVuelo)
+    {
+        using var cmd = new NpgsqlCommand(
+            "UPDATE itinerario SET estado = 'cerrado' WHERE id_vuelo = @idVuelo", conn);
+        cmd.Parameters.AddWithValue("idVuelo", idVuelo);
+        await cmd.ExecuteNonQueryAsync();
+    }
 
     private Ruta MapRuta(NpgsqlDataReader reader)
     {
@@ -249,7 +359,6 @@ public class RutaRepository : IRutaRepository
         };
     }
 
-    // POST Rutas y Vuelos
     private NpgsqlCommand CreatePostRutaCommand(NpgsqlConnection conn, Ruta ruta)
     {
         var cmd = new NpgsqlCommand(
@@ -260,7 +369,6 @@ public class RutaRepository : IRutaRepository
         cmd.Parameters.AddWithValue("precio", ruta.precio);
         return cmd;
     }
-
 
     private NpgsqlCommand CreatePostVueloCommand(NpgsqlConnection conn, Vuelo vuelo)
     {
@@ -274,7 +382,6 @@ public class RutaRepository : IRutaRepository
         return cmd;
     }
 
-    // PUT Rutas y Vuelos
     private NpgsqlCommand PutRutaCommand(NpgsqlConnection conn, int idRuta, Ruta ruta)
     {
         var cmd = new NpgsqlCommand(
