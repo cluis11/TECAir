@@ -28,6 +28,12 @@ builder.Services.AddScoped<IRutaService, RutaService>();
 builder.Services.AddScoped<IItinerarioRepository, ItinerarioRepository>();
 builder.Services.AddScoped<IItinerarioService, ItinerarioService>();
 
+// Reservas
+builder.Services.AddScoped<IReservaRepository, ReservaRepository>();
+builder.Services.AddScoped<IReservaService, ReservaService>();
+
+
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
