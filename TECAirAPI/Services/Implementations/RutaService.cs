@@ -1,6 +1,7 @@
 using TECAirAPI.Data.Repositories.Interfaces;
 using TECAirAPI.Models;
 using TECAirAPI.Services.Interfaces;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Services.Implementations;
 
@@ -46,5 +47,10 @@ public class RutaService : IRutaService
     public async Task<IEnumerable<Vuelo>> GetVuelo(int idVuelo)
     {
         return await _rutaRepo.GetVuelo(idVuelo);
+    }
+
+    public async Task<IEnumerable<RutaResultadoDTO>> GetAllParaPromo()
+    {
+        return await _rutaRepo.GetAllParaPromo();
     }
 }

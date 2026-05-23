@@ -1,4 +1,5 @@
 using TECAirAPI.Models;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Data.Repositories.Interfaces;
 
@@ -11,4 +12,5 @@ public interface IRutaRepository
     Task<Ruta> PutRuta(int id_ruta, Ruta ruta);
     Task<bool> DeleteRuta(int idRuta);
     Task<IEnumerable<Vuelo>> GetVuelo(int idVuelo);
+    Task<IEnumerable<RutaResultadoDTO>> GetAllParaPromo();
 }

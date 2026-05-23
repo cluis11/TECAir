@@ -63,4 +63,11 @@ public class RutaController : ControllerBase
         var result = await _rutaService.GetVuelo(idVuelo);
         return Ok(result);
     }
+
+    [HttpGet("promo")]
+    public async Task<IActionResult> GetParaPromo()
+    {
+        var result = await _rutaService.GetAllParaPromo();
+        return Ok(result);
+    }
 }

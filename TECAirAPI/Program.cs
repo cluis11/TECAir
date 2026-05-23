@@ -28,7 +28,19 @@ builder.Services.AddScoped<IRutaService, RutaService>();
 builder.Services.AddScoped<IItinerarioRepository, ItinerarioRepository>();
 builder.Services.AddScoped<IItinerarioService, ItinerarioService>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 app.MapControllers();

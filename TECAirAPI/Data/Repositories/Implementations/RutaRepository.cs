@@ -2,6 +2,7 @@ using Npgsql;
 using TECAirAPI.Data.Connection;
 using TECAirAPI.Data.Repositories.Interfaces;
 using TECAirAPI.Models;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Data.Repositories.Implementations;
 
@@ -298,5 +299,34 @@ public class RutaRepository : IRutaRepository
         cmd.Parameters.AddWithValue("matricula", vuelo.matricula);
         cmd.Parameters.AddWithValue("idVuelo", idVuelo);
         return cmd;
+    }
+
+   public async Task<IEnumerable<RutaResultadoDTO>> GetAllParaPromo()
+    {
+        var rutas = new List<RutaResultadoDTO>();
+
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            @"SELECT r.id_ruta, a1.ciudad AS ciudad_origen, a2.ciudad AS ciudad_destino, r.precio,
+                    COUNT(v.id_vuelo) AS cantidad_vuelos
+            FROM ruta r
+            JOIN aeropuerto a1 ON r.id_origen = a1.id_aeropuerto
+            JOIN aeropuerto a2 ON r.id_destino = a2.id_aeropuerto
+            LEFT JOIN vuelo v ON v.id_ruta = r.id_ruta
+            GROUP BY r.id_ruta, a1.ciudad, a2.ciudad, r.precio", conn);
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            rutas.Add(new RutaResultadoDTO
+            {
+                IdRuta = reader.GetInt32(0),
+                CiudadOrigen = reader.GetString(1),
+                CiudadDestino = reader.GetString(2),
+                Precio = reader.GetDecimal(3),
+                CantidadVuelos = reader.GetInt32(4)
+            });
+        }
+        return rutas;
     }
 }
