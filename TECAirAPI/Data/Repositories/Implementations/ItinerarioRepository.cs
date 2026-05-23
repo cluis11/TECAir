@@ -80,6 +80,21 @@ public class ItinerarioRepository : IItinerarioRepository
         return resultados;
     }
 
+    public async Task<Itinerario> GetById(int idItinerario)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            "SELECT * FROM itinerario WHERE id_itinerario = @idItinerario ", conn);
+        cmd.Parameters.AddWithValue("idItinerario", idItinerario);
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return MapItinerario(reader);
+        }
+        return null;
+    }
+
     public async Task<Itinerario> GetByVuelo(int idVuelo)
     {
         using var conn = _db.GetConnection();
