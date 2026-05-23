@@ -36,6 +36,13 @@ public class RutaController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("promo")]
+    public async Task<IActionResult> GetParaPromo()
+    {
+        var result = await _rutaService.GetAllParaPromo();
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] Ruta ruta)
     {
@@ -54,7 +61,8 @@ public class RutaController : ControllerBase
     public async Task<IActionResult> Eliminar(int id)
     {
         var result = await _rutaService.EliminarRuta(id);
-        return Ok(result);
+        if (!result) return NotFound();
+        return Ok();
     }
 
     [HttpGet("vuelo/{idVuelo}")]
@@ -64,10 +72,18 @@ public class RutaController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("promo")]
-    public async Task<IActionResult> GetParaPromo()
+    [HttpPost("{id}/vuelo")]
+    public async Task<IActionResult> AgregarVuelo(int id, [FromBody] Vuelo vuelo)
     {
-        var result = await _rutaService.GetAllParaPromo();
+        var result = await _rutaService.AgregarVuelo(id, vuelo);
         return Ok(result);
+    }
+
+    [HttpDelete("vuelo/{idVuelo}")]
+    public async Task<IActionResult> EliminarVuelo(int idVuelo)
+    {
+        var result = await _rutaService.EliminarVuelo(idVuelo);
+        if (!result) return NotFound();
+        return Ok();
     }
 }

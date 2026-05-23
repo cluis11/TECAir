@@ -6,6 +6,7 @@ import CheckIn from "./check-in";
 import AdminVuelos from "./admin-flight";
 import Promo from "./admin-promo";
 import Clientes from "./admin-clientes";
+import AdminRutas from './admin-rutas';
 
 const Admin = () => {
   // Estado para controlar qué sección se muestra
@@ -39,6 +40,13 @@ const Admin = () => {
             onClick={() => setVistaActiva('vuelos')}
           >
             <span>Vuelos</span>
+          </div>
+
+          <div 
+            className={`nav-item ${vistaActiva === 'rutas' ? 'active' : ''}`} 
+            onClick={() => setVistaActiva('rutas')}
+          >
+            <span>Rutas</span>
           </div>
 
           <div 
@@ -84,6 +92,11 @@ const Admin = () => {
                 <p>Crea, edita o cancela rutas y horarios de vuelo.</p>
               </div>
 
+              <div className="card" onClick={() => setVistaActiva('rutas')}>
+                <h3>Gestión de Rutas</h3>
+                <p>Crea, edita y elimina rutas con sus tramos.</p>
+              </div>
+
               <div className="card" onClick={() => setVistaActiva('promo')}>
                 <h3>Promociones</h3>
                 <p>Administra ofertas de vuelos.</p>
@@ -104,6 +117,7 @@ const Admin = () => {
         )}
 
         {vistaActiva === 'vuelos' && <AdminVuelos />}
+        {vistaActiva === 'rutas' && <AdminRutas />}
         {vistaActiva === 'promo' && <Promo />}
         {vistaActiva === 'clientes' && <Clientes />}
         {vistaActiva === 'checkin' && <CheckIn />}
