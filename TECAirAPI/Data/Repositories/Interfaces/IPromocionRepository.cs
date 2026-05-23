@@ -1,10 +1,11 @@
 using TECAirAPI.Models;
+using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Data.Repositories.Interfaces;
 
 public interface IPromocionRepository
 {
-    Task<IEnumerable<Promocion>> GetActivas(DateTime fecha);
+    Task<IEnumerable<PromocionDTO>> GetActivas(DateTime fecha);
     Task<IEnumerable<Promocion>> GetAll();
     Task<Promocion> GetById(int id_promo);
     Task<IEnumerable<Promocion>> PostPromocion(Promocion promocion);

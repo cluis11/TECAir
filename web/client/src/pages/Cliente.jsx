@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaPlaneDeparture, FaPlaneArrival, FaCalendarAlt, FaUserFriends, FaSearch } from 'react-icons/fa';
+import Navbar from './Navbar';
 
 const API_BASE = process.env.REACT_APP_API_URL;
 
 const Cliente = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [busqueda, setBusqueda] = useState({
         idOrigen: '',
@@ -17,6 +19,36 @@ const Cliente = () => {
     const [aeropuertos, setAeropuertos] = useState([]);
     const [cargando, setCargando] = useState(false);
     const [sinResultados, setSinResultados] = useState(false);
+
+    // Pre-rellenar origen y destino si viene de una promo
+    useEffect(() => {
+        const preRellenar = async () => {
+            if (!location.state?.idRuta) return;
+            try {
+                const res = await fetch(`${API_BASE}/ruta/promo`);
+                const rutas = await res.json();
+                const ruta = rutas.find(r => r.idRuta === location.state.idRuta);
+                if (!ruta) return;
+
+                // Buscar ids de aeropuerto por nombre de ciudad
+                const resAero = await fetch(`${API_BASE}/aeropuerto`);
+                const aeropuertos = await resAero.json();
+                const origen = aeropuertos.find(a => a.ciudad === ruta.ciudadOrigen);
+                const destino = aeropuertos.find(a => a.ciudad === ruta.ciudadDestino);
+
+                if (origen && destino) {
+                    setBusqueda(prev => ({
+                        ...prev,
+                        idOrigen: String(origen.id_aeropuerto),
+                        idDestino: String(destino.id_aeropuerto)
+                    }));
+                }
+            } catch (error) {
+                console.error('Error al pre-rellenar desde promo:', error);
+            }
+        };
+        preRellenar();
+    }, [location.state]);
 
     useEffect(() => {
         const fetchAeropuertos = async () => {
@@ -79,48 +111,17 @@ const Cliente = () => {
     return (
         <div className="container-fluid p-0 bg-light min-vh-100">
 
-            {/* Navbar */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-primary px-4 shadow-sm py-3 mb-5">
-                <div
-                    className="navbar-brand d-flex align-items-center"
-                    onClick={() => navigate('/')}
-                    style={{ cursor: 'pointer' }}
-                >
-                    <span className="fw-bold">✈︎ AIRTec</span>
-                </div>
+            <Navbar paginaActiva="reserva" />
 
-                <ul className="navbar-nav d-flex flex-row flex-wrap ms-lg-3 me-auto gap-3">
-                    <li className="nav-item">
-                        <Link className="nav-link active fw-bold" to="/">
-                            Reserva
-                        </Link>
-                    </li>
-                    <li className="nav-item">
-                        <Link className="nav-link fw-bold text-white-50" to="/promos">
-                            Promociones
-                        </Link>
-                    </li>
-                </ul>
-
-                <Link
-                    className="btn btn-light text-primary fw-bold px-4 rounded-pill shadow-sm"
-                    to="/login"
-                >
-                    Iniciar Sesión
-                </Link>
-            </nav>
-
-            <section className="container-xl px-4 mb-5">
+            <section className="container-xl px-4 mt-5 mb-5">
                 <div className="card border-0 shadow-lg p-5 rounded-4 bg-white">
                     <h1 className="text-secondary fw-bold mb-5 text-center text-md-start display-6">
                         ¿A dónde quieres volar hoy?
                     </h1>
 
                     <form onSubmit={handleBuscar}>
-
                         <div className="row g-4 mb-4">
 
-                            {/* Origen */}
                             <div className="col-md-4">
                                 <label className="form-label fw-semibold text-muted fs-5">
                                     <FaPlaneDeparture className="me-2" />Origen
@@ -141,7 +142,6 @@ const Cliente = () => {
                                 </select>
                             </div>
 
-                            {/* Destino */}
                             <div className="col-md-4">
                                 <label className="form-label fw-semibold text-muted fs-5">
                                     <FaPlaneArrival className="me-2" />Destino
@@ -164,7 +164,6 @@ const Cliente = () => {
                                 </select>
                             </div>
 
-                            {/* Fecha */}
                             <div className="col-md-4">
                                 <label className="form-label fw-semibold text-muted fs-5">
                                     <FaCalendarAlt className="me-2" />Fecha de Salida
@@ -182,8 +181,6 @@ const Cliente = () => {
                         </div>
 
                         <div className="row g-4 align-items-end">
-
-                            {/* Pasajeros */}
                             <div className="col-md-4">
                                 <label className="form-label fw-semibold text-muted fs-5">
                                     <FaUserFriends className="me-2" />Pasajeros
@@ -200,7 +197,6 @@ const Cliente = () => {
                                 />
                             </div>
 
-                            {/* Botón */}
                             <div className="col-md-8">
                                 <button
                                     type="submit"
@@ -212,10 +208,8 @@ const Cliente = () => {
                                 </button>
                             </div>
                         </div>
-
                     </form>
 
-                    {/* Sin resultados */}
                     {sinResultados && (
                         <div className="alert alert-warning d-flex align-items-center gap-3 mt-4 rounded-3" role="alert">
                             <FaSearch size={20} />
@@ -225,7 +219,6 @@ const Cliente = () => {
                             </div>
                         </div>
                     )}
-
                 </div>
             </section>
         </div>
