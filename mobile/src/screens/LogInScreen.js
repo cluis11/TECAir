@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getDBConnection, createTables, loginLocal, guardarUsuarioLocal } from '../database/db';
 import {
   View,
   Text,
@@ -9,17 +10,59 @@ import {
   StyleSheet,
 } from 'react-native';
 
-export default function LoginScreen({ onRegister }) {
-  const [correo, setCorreo] = useState('');
-  const [telefono, setTelefono] = useState('');
+const API_URL = 'http://192.168.0.49:5103';
 
-  const iniciarSesion = () => {
-    if (!correo || !telefono) {
-      Alert.alert('Error', 'Debe ingresar correo y teléfono.');
+export default function LoginScreen({ onRegister, onLoginExitoso }) {
+  const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [db, setDb] = useState(null);
+
+  useEffect(() => {
+    const initDB = async () => {
+      const conn = await getDBConnection();
+      await createTables(conn);
+      setDb(conn);
+    };
+    initDB();
+  }, []);
+
+  const iniciarSesion = async () => {
+    if (!correo || !contrasena) {
+      Alert.alert('Error', 'Debe ingresar correo y contraseña.');
       return;
     }
 
-    Alert.alert('Éxito', 'Inicio de sesión correcto.');
+    try {
+      const response = await fetch(`${API_URL}/usuario/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo, contrasena }),
+      });
+
+      if (response.ok) {
+        const usuario = await response.json();
+        // Guardar en SQLite para uso offline
+        await guardarUsuarioLocal(db, usuario);
+        Alert.alert('Éxito', `Bienvenido ${usuario.nombre}`);
+        onLoginExitoso(usuario);
+        return;
+      } else {
+        Alert.alert('Error', 'Correo o contraseña incorrectos.');
+        return;
+      }
+    } catch (error) {
+      // Sin internet — intentar login local
+      console.log('Sin conexión, intentando login offline...');
+    }
+
+    // Login offline con SQLite
+    const usuarioLocal = await loginLocal(db, correo, contrasena);
+    if (usuarioLocal) {
+      Alert.alert('Éxito', `Bienvenido ${usuarioLocal.nombre} (modo offline)`);
+      onLoginExitoso(usuarioLocal);
+    } else {
+      Alert.alert('Error', 'Sin conexión y no se encontró sesión guardada.');
+    }
   };
 
   return (
@@ -38,10 +81,10 @@ export default function LoginScreen({ onRegister }) {
 
       <TextInput
         style={styles.input}
-        placeholder="Teléfono"
-        value={telefono}
-        onChangeText={setTelefono}
-        keyboardType="phone-pad"
+        placeholder="Contraseña"
+        value={contrasena}
+        onChangeText={setContrasena}
+        secureTextEntry
       />
 
       <Button title="Iniciar sesión" onPress={iniciarSesion} />

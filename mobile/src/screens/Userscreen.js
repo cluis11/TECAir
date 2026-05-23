@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getDBConnection, createTables, guardarUsuarioLocal } from '../database/db';
 import {
   View,
   Text,
@@ -10,17 +11,41 @@ import {
   ScrollView,
 } from 'react-native';
 
-export default function RegistroUsuarioScreen() {
-  const [nombreCompleto, setNombreCompleto] = useState('');
+const API_URL = 'http://192.168.0.49:5103';
+
+
+export default function RegistroUsuarioScreen( { onRegistroExitoso } ) {
+  const [nombre, setNombre] = useState('');
+  const [ap1, setAp1] = useState('');
+  const [ap2, setAp2] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
   const [esEstudiante, setEsEstudiante] = useState(false);
   const [universidad, setUniversidad] = useState('');
   const [carnet, setCarnet] = useState('');
+  const [db, setDb] = useState(null);
 
-  const guardarUsuario = () => {
-    if (!nombreCompleto || !telefono || !correo) {
-      Alert.alert('Error', 'Debe completar nombre, teléfono y correo.');
+  useEffect(() => {
+    const initDB = async () => {
+      try {
+        const conn = await getDBConnection();
+        await createTables(conn);
+        setDb(conn);
+        console.log('DB iniciada correctamente');
+      } catch (error) {
+        console.log('Error iniciando DB:', error);
+      }
+    };
+    initDB();
+  }, []);
+
+  const guardarUsuario = async () => {
+     console.log('PRESIONADO', db);
+    console.log('Datos:', { nombre, ap1, telefono, correo, contrasena }); // ✅ y esto
+
+    if (!nombre || !ap1 || !telefono || !correo || !contrasena) {
+      Alert.alert('Error', 'Debe completar todos los campos obligatorios.');
       return;
     }
 
@@ -29,57 +54,63 @@ export default function RegistroUsuarioScreen() {
       return;
     }
 
-    const usuario = {
-      nombreCompleto,
+    const body = {
+      correo, contrasena, nombre, ap1,
+      ap2: ap2 || null,
       telefono,
-      correo,
       esEstudiante,
-      universidad: esEstudiante ? universidad : null,
-      carnet: esEstudiante ? carnet : null,
+      estudiante: esEstudiante ? { carnet, universidad } : null,
     };
 
-    console.log('Usuario registrado:', usuario);
+    try {
+      const response = await fetch(`${API_URL}/usuario`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-    Alert.alert('Éxito', 'Usuario registrado correctamente.');
-
-    setNombreCompleto('');
-    setTelefono('');
-    setCorreo('');
-    setEsEstudiante(false);
-    setUniversidad('');
-    setCarnet('');
+      if (response.ok) {
+        const usuario = await response.json();
+        // Guardar en SQLite para uso offline
+        await guardarUsuarioLocal(db, {
+          ...usuario,
+          contrasena,
+          esEstudiante,
+          carnet: esEstudiante ? carnet : null,
+          universidad: esEstudiante ? universidad : null,
+        });
+        Alert.alert('Éxito', 'Usuario registrado correctamente.');
+        onRegistroExitoso?.();
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.message ?? 'No se pudo registrar el usuario.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Sin conexión. No es posible registrarse sin internet.');
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Registro de Usuario</Text>
 
-      <Text style={styles.label}>Nombre completo</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el nombre completo"
-        value={nombreCompleto}
-        onChangeText={setNombreCompleto}
-      />
+      <Text style={styles.label}>Nombre</Text>
+      <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+
+      <Text style={styles.label}>Primer apellido</Text>
+      <TextInput style={styles.input} placeholder="Primer apellido" value={ap1} onChangeText={setAp1} />
+
+      <Text style={styles.label}>Segundo apellido (opcional)</Text>
+      <TextInput style={styles.input} placeholder="Segundo apellido" value={ap2} onChangeText={setAp2} />
 
       <Text style={styles.label}>Teléfono</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el teléfono"
-        value={telefono}
-        onChangeText={setTelefono}
-        keyboardType="phone-pad"
-      />
+      <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
 
       <Text style={styles.label}>Correo electrónico</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el correo"
-        value={correo}
-        onChangeText={setCorreo}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+      <TextInput style={styles.input} placeholder="Correo" value={correo} onChangeText={setCorreo} keyboardType="email-address" autoCapitalize="none" />
+
+      <Text style={styles.label}>Contraseña</Text>
+      <TextInput style={styles.input} placeholder="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry />
 
       <View style={styles.switchContainer}>
         <Text style={styles.label}>¿Es estudiante?</Text>
@@ -89,20 +120,9 @@ export default function RegistroUsuarioScreen() {
       {esEstudiante && (
         <>
           <Text style={styles.label}>Universidad</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingrese la universidad"
-            value={universidad}
-            onChangeText={setUniversidad}
-          />
-
+          <TextInput style={styles.input} placeholder="Universidad" value={universidad} onChangeText={setUniversidad} />
           <Text style={styles.label}>Carnet</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingrese el carnet"
-            value={carnet}
-            onChangeText={setCarnet}
-          />
+          <TextInput style={styles.input} placeholder="Carnet" value={carnet} onChangeText={setCarnet} />
         </>
       )}
 
