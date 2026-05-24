@@ -6,6 +6,7 @@ import RegistroUsuarioScreen from './src/screens/Userscreen';
 import VuelosScreen from './src/screens/VuelosScreen';
 import ReservasScreen from './src/screens/ReservasScreen';
 import PagoScreen from './src/screens/PagoScreen';
+import DescuentosScreen from './src/screens/DescuentosScreen';
 
 function App() {
   const [pantalla, setPantalla] = useState('inicio');
@@ -28,8 +29,13 @@ function App() {
           setVueloSeleccionado(vuelo);
           setPantalla('reserva');
         }}
+        onVerDescuentos={() => setPantalla('descuentos')}
       />
     );
+  }
+
+  if (pantalla === 'descuentos') {
+    return <DescuentosScreen onVolver={() => setPantalla('vuelos')} />;
   }
 
   if (pantalla === 'reserva') {

@@ -8,36 +8,57 @@ import {
   TextInput,
 } from 'react-native';
 
-export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo }) {
+export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo, onVerDescuentos }) {
   const [buscarOrigen, setBuscarOrigen] = useState('');
   const [buscarDestino, setBuscarDestino] = useState('');
 
   const vuelos = [
-    {
-      id: '1',
-      origen: 'San José',
-      destino: 'México',
-      salida: 'Juan Santamaría',
-      hora: '08:30 AM',
-      fecha: '25/05/2026',
-    },
-    {
-      id: '2',
-      origen: 'San José',
-      destino: 'España',
-      salida: 'Juan Santamaría',
-      hora: '02:15 PM',
-      fecha: '27/05/2026',
-    },
-    {
-      id: '3',
-      origen: 'Liberia',
-      destino: 'Estados Unidos',
-      salida: 'Daniel Oduber',
-      hora: '09:45 PM',
-      fecha: '30/05/2026',
-    },
-  ];
+      {
+        id: '1',
+        origen: 'San José',
+        destino: 'México',
+        salida: 'Juan Santamaría',
+        hora: '08:30 AM',
+        fecha: '25/05/2026',
+        precio: 320,
+      },
+      {
+        id: '2',
+        origen: 'San José',
+        destino: 'España',
+        salida: 'Juan Santamaría',
+        hora: '02:15 PM',
+        fecha: '27/05/2026',
+        precio: 890,
+      },
+      {
+        id: '3',
+        origen: 'Liberia',
+        destino: 'Estados Unidos',
+        salida: 'Daniel Oduber',
+        hora: '09:45 PM',
+        fecha: '30/05/2026',
+        precio: 450,
+      },
+      {
+        id: '4',
+        origen: 'San José',
+        destino: 'Colombia',
+        salida: 'Juan Santamaría',
+        hora: '11:00 AM',
+        fecha: '02/06/2026',
+        precio: 280,
+      },
+      {
+        id: '5',
+        origen: 'San José',
+        destino: 'Panamá',
+        salida: 'Juan Santamaría',
+        hora: '06:45 AM',
+        fecha: '04/06/2026',
+        precio: 180,
+      },
+    ];
 
   const vuelosFiltrados = vuelos.filter((vuelo) => {
     const origenCoincide = vuelo.origen
@@ -92,6 +113,9 @@ export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo }) 
             <Text style={styles.texto}>Aeropuerto de salida: {item.salida}</Text>
             <Text style={styles.texto}>Hora de salida: {item.hora}</Text>
             <Text style={styles.texto}>Fecha: {item.fecha}</Text>
+            <Text style={styles.precio}>
+              Precio: ${item.precio}
+            </Text>
 
             <Button
               title="Seleccionar vuelo"
@@ -101,7 +125,18 @@ export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo }) 
         )}
       />
 
-      <Button title="Volver al inicio" onPress={onVolver} />
+
+      <Button
+        title="Ver vuelos con descuento"
+        onPress={onVerDescuentos}
+      />
+
+      <View style={styles.separador} />
+
+      <Button
+        title="Volver al inicio"
+        onPress={onVolver}
+      />
     </View>
   );
 }
@@ -148,5 +183,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: '#777',
+  },
+  separador: {
+    height: 12,
+  },
+  precio: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 5,
+    marginBottom: 10,
   },
 });
