@@ -35,7 +35,15 @@ function App() {
   }
 
   if (pantalla === 'descuentos') {
-    return <DescuentosScreen onVolver={() => setPantalla('vuelos')} />;
+    return (
+      <DescuentosScreen
+        onVolver={() => setPantalla('vuelos')}
+        onSeleccionarVuelo={(vuelo: any) => {
+          setVueloSeleccionado(vuelo);
+          setPantalla('reserva');
+        }}
+      />
+    );
   }
 
   if (pantalla === 'reserva') {

@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
-export default function DescuentosScreen({ onVolver }) {
+export default function DescuentosScreen({ onVolver, onSeleccionarVuelo }) {
   const vuelos = [
     {
       id: '1',
@@ -94,6 +94,16 @@ export default function DescuentosScreen({ onVolver }) {
               <Text style={styles.precioFinal}>
                 Precio final: ${precioFinal.toFixed(2)}
               </Text>
+
+              <Button
+                title="Seleccionar vuelo"
+                onPress={() =>
+                  onSeleccionarVuelo({
+                    ...item,
+                    precio: precioFinal,
+                  })
+                }
+              />
             </View>
           );
         }}
