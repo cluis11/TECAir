@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  Alert,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 
 export default function LoginScreen({ onRegister }) {
   const [correo, setCorreo] = useState('');
@@ -46,9 +38,9 @@ export default function LoginScreen({ onRegister }) {
 
       <Button title="Iniciar sesión" onPress={iniciarSesion} />
 
-      <TouchableOpacity onPress={onRegister}>
-        <Text style={styles.link}>Crear una cuenta nueva</Text>
-      </TouchableOpacity>
+      <View style={styles.separador} />
+
+      <Button title="Crear cuenta" onPress={onRegister} />
     </View>
   );
 }
@@ -57,8 +49,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 25,
-    backgroundColor: '#fff',
     justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   titulo: {
     fontSize: 34,
@@ -73,15 +65,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#aaa',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  link: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#0066cc',
-    fontWeight: 'bold',
+  separador: {
+    height: 12,
   },
 });
