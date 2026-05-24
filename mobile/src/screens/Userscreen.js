@@ -1,132 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { getDBConnection, createTables, guardarUsuarioLocal } from '../database/db';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   Button,
-  Switch,
   Alert,
   StyleSheet,
   ScrollView,
+  Switch,
 } from 'react-native';
 
-const API_URL = 'http://192.168.0.49:5103';
-
-
-export default function RegistroUsuarioScreen( { onRegistroExitoso } ) {
+export default function RegistroUsuarioScreen({ onVolver }) {
   const [nombre, setNombre] = useState('');
-  const [ap1, setAp1] = useState('');
-  const [ap2, setAp2] = useState('');
-  const [telefono, setTelefono] = useState('');
+  const [apellido1, setApellido1] = useState('');
+  const [apellido2, setApellido2] = useState('');
   const [correo, setCorreo] = useState('');
-  const [contrasena, setContrasena] = useState('');
+  const [telefono1, setTelefono1] = useState('');
+  const [telefono2, setTelefono2] = useState('');
+  const [password, setPassword] = useState('');
+
   const [esEstudiante, setEsEstudiante] = useState(false);
   const [universidad, setUniversidad] = useState('');
   const [carnet, setCarnet] = useState('');
-  const [db, setDb] = useState(null);
 
-  useEffect(() => {
-    const initDB = async () => {
-      try {
-        const conn = await getDBConnection();
-        await createTables(conn);
-        setDb(conn);
-        console.log('DB iniciada correctamente');
-      } catch (error) {
-        console.log('Error iniciando DB:', error);
-      }
-    };
-    initDB();
-  }, []);
-
-  const guardarUsuario = async () => {
-     console.log('PRESIONADO', db);
-    console.log('Datos:', { nombre, ap1, telefono, correo, contrasena }); // ✅ y esto
-
-    if (!nombre || !ap1 || !telefono || !correo || !contrasena) {
-      Alert.alert('Error', 'Debe completar todos los campos obligatorios.');
+  const guardarUsuario = () => {
+    if (
+      !nombre ||
+      !apellido1 ||
+      !apellido2 ||
+      !correo ||
+      !telefono1 ||
+      !password
+    ) {
+      Alert.alert(
+        'Error',
+        'Debe completar todos los campos obligatorios.'
+      );
       return;
     }
 
     if (esEstudiante && (!universidad || !carnet)) {
-      Alert.alert('Error', 'Debe completar universidad y carnet.');
+      Alert.alert(
+        'Error',
+        'Debe completar universidad y carnet.'
+      );
       return;
     }
 
-    const body = {
-      correo, contrasena, nombre, ap1,
-      ap2: ap2 || null,
-      telefono,
+    const usuario = {
+      nombre,
+      apellido1,
+      apellido2,
+      correo,
+      telefono1,
+      telefono2,
+      password,
       esEstudiante,
-      estudiante: esEstudiante ? { carnet, universidad } : null,
+      universidad: esEstudiante ? universidad : null,
+      carnet: esEstudiante ? carnet : null,
     };
 
-    try {
-      const response = await fetch(`${API_URL}/usuario`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+    console.log('Usuario registrado:', usuario);
 
-      if (response.ok) {
-        const usuario = await response.json();
-        // Guardar en SQLite para uso offline
-        await guardarUsuarioLocal(db, {
-          ...usuario,
-          contrasena,
-          esEstudiante,
-          carnet: esEstudiante ? carnet : null,
-          universidad: esEstudiante ? universidad : null,
-        });
-        Alert.alert('Éxito', 'Usuario registrado correctamente.');
-        onRegistroExitoso?.();
-      } else {
-        const error = await response.json();
-        Alert.alert('Error', error.message ?? 'No se pudo registrar el usuario.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Sin conexión. No es posible registrarse sin internet.');
-    }
+    Alert.alert(
+      'Éxito',
+      'Usuario registrado correctamente.'
+    );
+
+    setNombre('');
+    setApellido1('');
+    setApellido2('');
+    setCorreo('');
+    setTelefono1('');
+    setTelefono2('');
+    setPassword('');
+    setEsEstudiante(false);
+    setUniversidad('');
+    setCarnet('');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.titulo}>Registro de Usuario</Text>
+      <Text style={styles.titulo}>Crear Cuenta</Text>
 
       <Text style={styles.label}>Nombre</Text>
-      <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el nombre"
+        value={nombre}
+        onChangeText={setNombre}
+      />
 
-      <Text style={styles.label}>Primer apellido</Text>
-      <TextInput style={styles.input} placeholder="Primer apellido" value={ap1} onChangeText={setAp1} />
+      <Text style={styles.label}>Apellido 1</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el primer apellido"
+        value={apellido1}
+        onChangeText={setApellido1}
+      />
 
-      <Text style={styles.label}>Segundo apellido (opcional)</Text>
-      <TextInput style={styles.input} placeholder="Segundo apellido" value={ap2} onChangeText={setAp2} />
-
-      <Text style={styles.label}>Teléfono</Text>
-      <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
+      <Text style={styles.label}>Apellido 2</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el segundo apellido"
+        value={apellido2}
+        onChangeText={setApellido2}
+      />
 
       <Text style={styles.label}>Correo electrónico</Text>
-      <TextInput style={styles.input} placeholder="Correo" value={correo} onChangeText={setCorreo} keyboardType="email-address" autoCapitalize="none" />
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el correo"
+        value={correo}
+        onChangeText={setCorreo}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <Text style={styles.label}>Teléfono 1</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el teléfono principal"
+        value={telefono1}
+        onChangeText={setTelefono1}
+        keyboardType="phone-pad"
+      />
+
+      <Text style={styles.label}>Teléfono 2 (Opcional)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese el segundo teléfono"
+        value={telefono2}
+        onChangeText={setTelefono2}
+        keyboardType="phone-pad"
+      />
 
       <Text style={styles.label}>Contraseña</Text>
-      <TextInput style={styles.input} placeholder="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry />
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese la contraseña"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
 
       <View style={styles.switchContainer}>
         <Text style={styles.label}>¿Es estudiante?</Text>
-        <Switch value={esEstudiante} onValueChange={setEsEstudiante} />
+        <Switch
+          value={esEstudiante}
+          onValueChange={setEsEstudiante}
+        />
       </View>
 
       {esEstudiante && (
         <>
           <Text style={styles.label}>Universidad</Text>
-          <TextInput style={styles.input} placeholder="Universidad" value={universidad} onChangeText={setUniversidad} />
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese la universidad"
+            value={universidad}
+            onChangeText={setUniversidad}
+          />
+
           <Text style={styles.label}>Carnet</Text>
-          <TextInput style={styles.input} placeholder="Carnet" value={carnet} onChangeText={setCarnet} />
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese el carnet"
+            value={carnet}
+            onChangeText={setCarnet}
+          />
         </>
       )}
 
-      <Button title="Registrar usuario" onPress={guardarUsuario} />
+      <Button
+        title="Registrar usuario"
+        onPress={guardarUsuario}
+      />
+
+      <View style={styles.separador} />
+
+      <Button
+        title="Volver al inicio"
+        onPress={onVolver}
+      />
     </ScrollView>
   );
 }
@@ -137,19 +193,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     flexGrow: 1,
   },
+
   titulo: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 25,
     marginTop: 30,
     textAlign: 'center',
   },
+
   label: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 6,
+    marginBottom: 5,
     marginTop: 10,
   },
+
   input: {
     borderWidth: 1,
     borderColor: '#aaa',
@@ -157,10 +216,15 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
+
   switchContainer: {
     marginVertical: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+
+  separador: {
+    height: 12,
   },
 });

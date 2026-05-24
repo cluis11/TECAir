@@ -1,67 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { getDBConnection, createTables, loginLocal, guardarUsuarioLocal } from '../database/db';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  Alert,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 
-const API_URL = 'http://192.168.0.49:5103';
-
-export default function LoginScreen({ onRegister, onLoginExitoso }) {
+export default function LoginScreen({ onRegister, onVolver, onLogin, usuario }) {
   const [correo, setCorreo] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [db, setDb] = useState(null);
+  const [password, setPassword] = useState('');
 
-  useEffect(() => {
-    const initDB = async () => {
-      const conn = await getDBConnection();
-      await createTables(conn);
-      setDb(conn);
-    };
-    initDB();
-  }, []);
-
-  const iniciarSesion = async () => {
-    if (!correo || !contrasena) {
-      Alert.alert('Error', 'Debe ingresar correo y contraseña.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/usuario/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contrasena }),
-      });
-
-      if (response.ok) {
-        const usuario = await response.json();
-        // Guardar en SQLite para uso offline
-        await guardarUsuarioLocal(db, usuario);
-        Alert.alert('Éxito', `Bienvenido ${usuario.nombre}`);
-        onLoginExitoso(usuario);
-        return;
-      } else {
-        Alert.alert('Error', 'Correo o contraseña incorrectos.');
-        return;
-      }
-    } catch (error) {
-      // Sin internet — intentar login local
-      console.log('Sin conexión, intentando login offline...');
-    }
-
-    // Login offline con SQLite
-    const usuarioLocal = await loginLocal(db, correo, contrasena);
-    if (usuarioLocal) {
-      Alert.alert('Éxito', `Bienvenido ${usuarioLocal.nombre} (modo offline)`);
-      onLoginExitoso(usuarioLocal);
+  const iniciarSesion = () => {
+    if (
+      correo === usuario.correo &&
+      password === usuario.password
+    ) {
+      onLogin(usuario);
     } else {
-      Alert.alert('Error', 'Sin conexión y no se encontró sesión guardada.');
+      Alert.alert('Error', 'Correo o contraseña incorrectos.');
     }
   };
 
@@ -70,28 +21,36 @@ export default function LoginScreen({ onRegister, onLoginExitoso }) {
       <Text style={styles.titulo}>TECAir</Text>
       <Text style={styles.subtitulo}>Inicio de sesión</Text>
 
+      <Text style={styles.label}>Correo electrónico</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Correo electrónico"
+        placeholder="Ingrese su correo"
         value={correo}
         onChangeText={setCorreo}
         keyboardType="email-address"
         autoCapitalize="none"
       />
 
+      <Text style={styles.label}>Contraseña</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Contraseña"
-        value={contrasena}
-        onChangeText={setContrasena}
+        placeholder="Ingrese su contraseña"
+        value={password}
+        onChangeText={setPassword}
         secureTextEntry
       />
 
       <Button title="Iniciar sesión" onPress={iniciarSesion} />
 
-      <TouchableOpacity onPress={onRegister}>
-        <Text style={styles.link}>Crear una cuenta nueva</Text>
-      </TouchableOpacity>
+      <View style={styles.separador} />
+
+      <Button title="Crear cuenta" onPress={onRegister} />
+
+      <View style={styles.separador} />
+
+      <Button title="Volver al inicio" onPress={onVolver} />
     </View>
   );
 }
@@ -100,8 +59,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 25,
-    backgroundColor: '#fff',
     justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   titulo: {
     fontSize: 34,
@@ -116,15 +75,18 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#aaa',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  link: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#0066cc',
+  separador: {
+    height: 12,
+  },
+  label: {
+    fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 5,
   },
 });
