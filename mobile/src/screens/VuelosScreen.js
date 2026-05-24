@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
- FlatList,
+  FlatList,
   StyleSheet,
   Button,
   TextInput,
 } from 'react-native';
 
-export default function VuelosScreen({ onVolver }) {
+export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo }) {
   const [buscarOrigen, setBuscarOrigen] = useState('');
   const [buscarDestino, setBuscarDestino] = useState('');
 
@@ -55,6 +55,12 @@ export default function VuelosScreen({ onVolver }) {
     <View style={styles.container}>
       <Text style={styles.titulo}>Vuelos Disponibles</Text>
 
+      {usuario ? (
+        <Text style={styles.usuario}>Usuario: {usuario.correo}</Text>
+      ) : (
+        <Text style={styles.usuario}>Modo anónimo</Text>
+      )}
+
       <Text style={styles.label}>Origen</Text>
       <TextInput
         style={styles.input}
@@ -75,9 +81,7 @@ export default function VuelosScreen({ onVolver }) {
         data={vuelosFiltrados}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <Text style={styles.sinResultados}>
-            No se encontraron vuelos
-          </Text>
+          <Text style={styles.sinResultados}>No se encontraron vuelos</Text>
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -85,17 +89,14 @@ export default function VuelosScreen({ onVolver }) {
               {item.origen} → {item.destino}
             </Text>
 
-            <Text style={styles.texto}>
-              Aeropuerto de salida: {item.salida}
-            </Text>
+            <Text style={styles.texto}>Aeropuerto de salida: {item.salida}</Text>
+            <Text style={styles.texto}>Hora de salida: {item.hora}</Text>
+            <Text style={styles.texto}>Fecha: {item.fecha}</Text>
 
-            <Text style={styles.texto}>
-              Hora de salida: {item.hora}
-            </Text>
-
-            <Text style={styles.texto}>
-              Fecha: {item.fecha}
-            </Text>
+            <Button
+              title="Seleccionar vuelo"
+              onPress={() => onSeleccionarVuelo(item)}
+            />
           </View>
         )}
       />
@@ -106,12 +107,7 @@ export default function VuelosScreen({ onVolver }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
   titulo: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -119,14 +115,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-
+    usuario: {
+    textAlign: 'center',
+    marginBottom: 15,
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
   label: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
     marginTop: 5,
   },
-
   input: {
     borderWidth: 1,
     borderColor: '#aaa',
@@ -134,7 +134,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
-
   card: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -142,18 +141,8 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
   },
-
-  destino: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-
-  texto: {
-    fontSize: 15,
-    marginBottom: 4,
-  },
-
+  destino: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
+  texto: { fontSize: 15, marginBottom: 4 },
   sinResultados: {
     textAlign: 'center',
     marginTop: 20,

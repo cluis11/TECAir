@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 
-export default function LoginScreen({ onRegister, onVolver }) {
+export default function LoginScreen({ onRegister, onVolver, onLogin, usuario }) {
   const [correo, setCorreo] = useState('');
-  const [telefono, setTelefono] = useState('');
+  const [password, setPassword] = useState('');
 
   const iniciarSesion = () => {
-    if (!correo || !telefono) {
-      Alert.alert('Error', 'Debe ingresar correo y teléfono.');
-      return;
+    if (
+      correo === usuario.correo &&
+      password === usuario.password
+    ) {
+      onLogin(usuario);
+    } else {
+      Alert.alert('Error', 'Correo o contraseña incorrectos.');
     }
-
-    Alert.alert('Éxito', 'Inicio de sesión correcto.');
   };
 
   return (
@@ -19,21 +21,25 @@ export default function LoginScreen({ onRegister, onVolver }) {
       <Text style={styles.titulo}>TECAir</Text>
       <Text style={styles.subtitulo}>Inicio de sesión</Text>
 
+      <Text style={styles.label}>Correo electrónico</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Correo electrónico"
+        placeholder="Ingrese su correo"
         value={correo}
         onChangeText={setCorreo}
         keyboardType="email-address"
         autoCapitalize="none"
       />
 
+      <Text style={styles.label}>Contraseña</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Teléfono"
-        value={telefono}
-        onChangeText={setTelefono}
-        keyboardType="phone-pad"
+        placeholder="Ingrese su contraseña"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
       />
 
       <Button title="Iniciar sesión" onPress={iniciarSesion} />
@@ -43,6 +49,7 @@ export default function LoginScreen({ onRegister, onVolver }) {
       <Button title="Crear cuenta" onPress={onRegister} />
 
       <View style={styles.separador} />
+
       <Button title="Volver al inicio" onPress={onVolver} />
     </View>
   );
@@ -75,5 +82,11 @@ const styles = StyleSheet.create({
   },
   separador: {
     height: 12,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 5,
   },
 });
