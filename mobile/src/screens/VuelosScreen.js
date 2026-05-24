@@ -1,12 +1,14 @@
 import React from 'react';
 import {
   View,
- Text,
+  Text,
   FlatList,
   StyleSheet,
+  Button,
+  Alert,
 } from 'react-native';
 
-export default function VuelosScreen() {
+export default function VuelosScreen({ onVolver }) {
 
   const vuelos = [
     {
@@ -58,6 +60,12 @@ export default function VuelosScreen() {
             </Text>
           </View>
         )}
+      />
+      <Button
+        title="Volver al inicio"
+        onPress={() => {
+          onVolver();
+        }}
       />
     </View>
   );

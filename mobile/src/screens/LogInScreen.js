@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 
-export default function LoginScreen({ onRegister }) {
+export default function LoginScreen({ onRegister, onVolver }) {
   const [correo, setCorreo] = useState('');
   const [telefono, setTelefono] = useState('');
 
@@ -41,6 +41,9 @@ export default function LoginScreen({ onRegister }) {
       <View style={styles.separador} />
 
       <Button title="Crear cuenta" onPress={onRegister} />
+
+      <View style={styles.separador} />
+      <Button title="Volver al inicio" onPress={onVolver} />
     </View>
   );
 }

@@ -8,16 +8,26 @@ import VuelosScreen from './src/screens/VuelosScreen';
 function App() {
   const [pantalla, setPantalla] = useState('inicio');
 
+  const volverInicio = () => {
+  console.log('Cambiando a inicio');
+  setPantalla('inicio');
+  };
+
   if (pantalla === 'vuelos') {
-    return <VuelosScreen />;
+    return <VuelosScreen onVolver={volverInicio} />;
   }
 
   if (pantalla === 'login') {
-    return <LoginScreen onRegister={() => setPantalla('registro')} />;
+    return (
+      <LoginScreen
+        onVolver={volverInicio}
+        onRegister={() => setPantalla('registro')}
+      />
+    );
   }
 
   if (pantalla === 'registro') {
-    return <RegistroUsuarioScreen />;
+    return <RegistroUsuarioScreen onVolver={volverInicio} />;
   }
 
   return (

@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 
-export default function RegistroUsuarioScreen() {
+export default function RegistroUsuarioScreen({ onVolver }) {
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
@@ -107,6 +107,9 @@ export default function RegistroUsuarioScreen() {
       )}
 
       <Button title="Registrar usuario" onPress={guardarUsuario} />
+
+      <View style={styles.separador} />
+      <Button title="Volver al inicio" onPress={onVolver} />
     </ScrollView>
   );
 }
