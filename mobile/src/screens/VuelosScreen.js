@@ -1,50 +1,88 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
+ FlatList,
   StyleSheet,
   Button,
-  Alert,
+  TextInput,
 } from 'react-native';
 
 export default function VuelosScreen({ onVolver }) {
+  const [buscarOrigen, setBuscarOrigen] = useState('');
+  const [buscarDestino, setBuscarDestino] = useState('');
 
   const vuelos = [
     {
       id: '1',
-      destino: 'San José → México',
+      origen: 'San José',
+      destino: 'México',
       salida: 'Juan Santamaría',
       hora: '08:30 AM',
       fecha: '25/05/2026',
     },
     {
       id: '2',
-      destino: 'San José → España',
+      origen: 'San José',
+      destino: 'España',
       salida: 'Juan Santamaría',
       hora: '02:15 PM',
       fecha: '27/05/2026',
     },
     {
       id: '3',
-      destino: 'San José → Estados Unidos',
+      origen: 'Liberia',
+      destino: 'Estados Unidos',
       salida: 'Daniel Oduber',
       hora: '09:45 PM',
       fecha: '30/05/2026',
     },
   ];
 
+  const vuelosFiltrados = vuelos.filter((vuelo) => {
+    const origenCoincide = vuelo.origen
+      .toLowerCase()
+      .includes(buscarOrigen.toLowerCase());
+
+    const destinoCoincide = vuelo.destino
+      .toLowerCase()
+      .includes(buscarDestino.toLowerCase());
+
+    return origenCoincide && destinoCoincide;
+  });
+
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Vuelos Disponibles</Text>
 
+      <Text style={styles.label}>Origen</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Buscar origen"
+        value={buscarOrigen}
+        onChangeText={setBuscarOrigen}
+      />
+
+      <Text style={styles.label}>Destino</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Buscar destino"
+        value={buscarDestino}
+        onChangeText={setBuscarDestino}
+      />
+
       <FlatList
-        data={vuelos}
+        data={vuelosFiltrados}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <Text style={styles.sinResultados}>
+            No se encontraron vuelos
+          </Text>
+        }
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.destino}>
-              {item.destino}
+              {item.origen} → {item.destino}
             </Text>
 
             <Text style={styles.texto}>
@@ -61,12 +99,8 @@ export default function VuelosScreen({ onVolver }) {
           </View>
         )}
       />
-      <Button
-        title="Volver al inicio"
-        onPress={() => {
-          onVolver();
-        }}
-      />
+
+      <Button title="Volver al inicio" onPress={onVolver} />
     </View>
   );
 }
@@ -86,6 +120,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 5,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: '#aaa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+
   card: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -103,5 +152,12 @@ const styles = StyleSheet.create({
   texto: {
     fontSize: 15,
     marginBottom: 4,
+  },
+
+  sinResultados: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#777',
   },
 });
