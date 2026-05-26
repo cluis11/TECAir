@@ -40,7 +40,16 @@ public class ItinerarioController: ControllerBase
     [HttpPut("cerrar/{id}")]
     public async Task<IActionResult> Put(int id)
     {
+        var resumen = await _itinerarioService.GetResumenCierre(id);
         await _itinerarioService.Cerrar(id);
-        return Ok(new { mensaje = "Itinerario cerrado correctamente." });
+        return Ok(resumen);
+    }
+
+    [HttpGet("{id}/resumen")]
+    public async Task<IActionResult> GetResumen(int id)
+    {
+        var result = await _itinerarioService.GetResumenCierre(id);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 }
