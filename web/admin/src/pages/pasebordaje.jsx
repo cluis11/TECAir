@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaPlane, FaPrint, FaMobileAlt, FaEnvelope, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaPlane, FaPrint, FaMobileAlt, FaEnvelope, FaCheckCircle, FaArrowLeft, FaDownload, FaSpinner } from 'react-icons/fa';
 
 const API_BASE = process.env.REACT_APP_API_URL;
 
@@ -15,6 +15,7 @@ const PaseAbordar = () => {
   const [enviadoPorPasajero, setEnviadoPorPasajero] = useState({});
   const [checkinConfirmado, setCheckinConfirmado] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [cargandoAccion,      setCargandoAccion]      = useState(''); // 'correo'|'movil'|'pdf'|'
 
   const totalPasajeros = reserva?.pasajeros?.length || 1;
 
@@ -23,6 +24,12 @@ const PaseAbordar = () => {
 
   const tramoInfo = tramos[tramoIndex];
   const seleccion = seleccionPorTramo?.[tramoInfo?.idItinerario] || {};
+
+  const getIdBoleto = (pasajeroIndex) => {
+    const pasajero = reserva?.pasajeros?.[pasajeroIndex];
+    const boleto = pasajero?.boletos?.find(b => b.idItinerario === tramoInfo?.idItinerario);
+    return boleto?.idBoleto || null;
+  };
 
   const obtenerNombre = (index) => {
     const p = reserva?.pasajeros?.[index];
@@ -81,21 +88,103 @@ const PaseAbordar = () => {
     }
   };
 
-  const handleEnviar = (tipo) => {
-    if (tipo === 'correo' && !correo) { alert('Ingrese un correo electrónico.'); return; }
-    if (tipo === 'movil' && !movil) { alert('Ingrese un número de teléfono.'); return; }
-
+  const handleDescargarPdf = async () => {
+    const idBoleto = getIdBoleto(pasajeroViendo);
+    if (!idBoleto) { alert('No se encontró el boleto.'); return; }
+ 
+    setCargandoAccion('pdf');
+    try {
+      const res = await fetch(`${API_BASE}/checkin/${idBoleto}/pdf`);
+      if (!res.ok) { alert('No se pudo generar el PDF.'); return; }
+ 
+      // Crear un blob y disparar descarga en el navegador
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href     = url;
+      link.download = `pase_${reserva.idReserva}_${getAsientoLabel(pasajeroViendo)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error al descargar el PDF.');
+      console.error(error);
+    } finally {
+      setCargandoAccion('');
+    }
+  };
+ 
+  // ── Imprimir PDF (abre el PDF en nueva pestaña para imprimir) ────────────
+  const handleImprimir = async () => {
+    const idBoleto = getIdBoleto(pasajeroViendo);
+    if (!idBoleto) { alert('No se encontró el boleto.'); return; }
+ 
+    setCargandoAccion('imprimir');
+    try {
+      const res = await fetch(`${API_BASE}/checkin/${idBoleto}/pdf`);
+      if (!res.ok) { alert('No se pudo generar el PDF para imprimir.'); return; }
+ 
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const ventana = window.open(url, '_blank');
+      if (ventana) {
+        // Esperar a que cargue y luego llamar print()
+        ventana.addEventListener('load', () => ventana.print(), { once: true });
+      }
+    } catch (error) {
+      alert('Error al preparar la impresión.');
+      console.error(error);
+    } finally {
+      setCargandoAccion('');
+    }
+  };
+ 
+  // ── Enviar por correo ────────────────────────────────────────────────────
+  const handleEnviarCorreo = async () => {
+    if (!correo) { alert('Ingrese un correo electrónico.'); return; }
+ 
+    const idBoleto = getIdBoleto(pasajeroViendo);
+    if (!idBoleto) { alert('No se encontró el boleto.'); return; }
+ 
+    setCargandoAccion('correo');
+    try {
+      const res = await fetch(`${API_BASE}/checkin/${idBoleto}/enviar-correo`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ Correo: correo })
+      });
+ 
+      if (res.ok) {
+        setEnviadoPorPasajero(prev => ({
+          ...prev,
+          [pasajeroViendo]: { ...enviado, correo: true }
+        }));
+        alert(`Pase de ${obtenerNombre(pasajeroViendo)} enviado a ${correo}`);
+      } else {
+        // Fallback: descargar para que el usuario adjunte manualmente
+        alert('No se pudo enviar por correo. Se descargará el PDF para que lo adjuntes manualmente.');
+        await handleDescargarPdf();
+      }
+    } catch (error) {
+      alert('No se pudo conectar con el servidor.');
+      console.error(error);
+    } finally {
+      setCargandoAccion('');
+    }
+  };
+ 
+  // ── Enviar por móvil (descarga PDF — SMS no soporta adjuntos) ────────────
+  const handleEnviarMovil = async () => {
+    if (!movil) { alert('Ingrese un número de teléfono.'); return; }
+ 
+    // SMS no puede enviar archivos; descargamos el PDF y avisamos al usuario
     setEnviadoPorPasajero(prev => ({
       ...prev,
-      [pasajeroViendo]: { ...enviado, [tipo]: true }
+      [pasajeroViendo]: { ...enviado, movil: true }
     }));
-
-    alert(
-      tipo === 'correo' ? `Pase de ${obtenerNombre(pasajeroViendo)} enviado a ${correo}` :
-      tipo === 'movil' ? `Pase de ${obtenerNombre(pasajeroViendo)} enviado al móvil ${movil}` :
-      `Imprimiendo pase de ${obtenerNombre(pasajeroViendo)}...`
-    );
-    if (tipo === 'impresora') window.print();
+    alert(`SMS no puede adjuntar archivos. Se descargará el PDF para que lo compartas con el pasajero ${movil}.`);
+    await handleDescargarPdf();
   };
 
   const handleCambiarPasajero = (index) => {
@@ -205,48 +294,89 @@ const PaseAbordar = () => {
             onClick={handleConfirmarCheckin}
             disabled={cargando}
           >
-            {cargando ? 'Procesando...' : '✓ Confirmar Check-in'}
+            {cargando
+              ? <><FaSpinner className="me-2 fa-spin" />Procesando...</>
+              : '✓ Confirmar Check-in'}
           </button>
         ) : (
           <>
-            {/* Opciones de envío */}
-            <div className="card shadow-sm border-0 rounded-4 p-4 mb-3">
-              <h6 className="fw-bold text-secondary text-uppercase mb-3" style={{ fontSize: '0.8rem' }}>
-                Enviar pase de {obtenerNombre(pasajeroViendo).split(' ')[0]}
-              </h6>
-
-              <div className="mb-3">
-                <label className="form-label small fw-semibold">Por correo electrónico:</label>
-                <div className="input-group">
-                  <input type="email" className="form-control" placeholder="correo@ejemplo.com"
-                    value={correo} onChange={(e) => setCorreo(e.target.value)} />
-                  <button className={`btn ${enviado.correo ? 'btn-success' : 'btn-outline-primary'}`}
-                    onClick={() => handleEnviar('correo')}>
-                    {enviado.correo ? <FaCheckCircle /> : <FaEnvelope />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label small fw-semibold">Por dispositivo móvil (SMS):</label>
-                <div className="input-group">
-                  <input type="tel" className="form-control" placeholder="+506 8888 8888"
-                    value={movil} onChange={(e) => setMovil(e.target.value)} />
-                  <button className={`btn ${enviado.movil ? 'btn-success' : 'btn-outline-primary'}`}
-                    onClick={() => handleEnviar('movil')}>
-                    {enviado.movil ? <FaCheckCircle /> : <FaMobileAlt />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                className={`btn w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 ${enviado.impresora ? 'btn-success' : 'btn-outline-secondary'}`}
-                onClick={() => handleEnviar('impresora')}>
-                {enviado.impresora ? <FaCheckCircle /> : <FaPrint />}
-                <span>{enviado.impresora ? 'Enviado a impresora' : 'Imprimir pase de abordar'}</span>
-              </button>
+            <div className="alert alert-success d-flex align-items-center gap-2 mb-3">
+              <FaCheckCircle />
+              <span>Check-in confirmado correctamente.</span>
             </div>
-
+ 
+            {/* ── Acciones del PDF ── */}
+            <div className="card shadow-sm border-0 rounded-4 p-4 mb-3">
+              <h6 className="fw-bold text-secondary text-uppercase mb-3" style={{ fontSize: '.8rem' }}>
+                Pase de {obtenerNombre(pasajeroViendo).split(' ')[0]}
+              </h6>
+ 
+              {/* Descargar PDF */}
+              <button
+                className="btn btn-outline-primary w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-3"
+                onClick={handleDescargarPdf}
+                disabled={cargandoAccion === 'pdf'}
+              >
+                {cargandoAccion === 'pdf'
+                  ? <><FaSpinner className="fa-spin" /> Generando PDF...</>
+                  : <><FaDownload /> Descargar PDF</>}
+              </button>
+ 
+              {/* Imprimir */}
+              <button
+                className={`btn w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-3 ${
+                  cargandoAccion === 'imprimir' ? 'btn-secondary' : 'btn-outline-secondary'
+                }`}
+                onClick={handleImprimir}
+                disabled={cargandoAccion === 'imprimir'}
+              >
+                {cargandoAccion === 'imprimir'
+                  ? <><FaSpinner className="fa-spin" /> Preparando...</>
+                  : <><FaPrint /> Imprimir pase</>}
+              </button>
+ 
+              {/* Enviar por correo */}
+              <label className="form-label small fw-semibold mt-1">Enviar por correo electrónico:</label>
+              <div className="input-group mb-3">
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="correo@ejemplo.com"
+                  value={correo}
+                  onChange={(e) => setCorreo(e.target.value)}
+                />
+                <button
+                  className={`btn ${enviado.correo ? 'btn-success' : 'btn-outline-primary'}`}
+                  onClick={handleEnviarCorreo}
+                  disabled={cargandoAccion === 'correo'}
+                >
+                  {cargandoAccion === 'correo'
+                    ? <FaSpinner className="fa-spin" />
+                    : enviado.correo ? <FaCheckCircle /> : <FaEnvelope />}
+                </button>
+              </div>
+ 
+              {/* Enviar por móvil */}
+              <label className="form-label small fw-semibold">Por dispositivo móvil:</label>
+              <div className="input-group">
+                <input
+                  type="tel"
+                  className="form-control"
+                  placeholder="+506 8888 8888"
+                  value={movil}
+                  onChange={(e) => setMovil(e.target.value)}
+                />
+                <button
+                  className={`btn ${enviado.movil ? 'btn-success' : 'btn-outline-primary'}`}
+                  onClick={handleEnviarMovil}
+                  disabled={cargandoAccion === 'movil'}
+                >
+                  {enviado.movil ? <FaCheckCircle /> : <FaMobileAlt />}
+                </button>
+              </div>
+            </div>
+ 
+            {/* Navegación final */}
             <div className="d-flex gap-2">
               <button
                 className="btn btn-outline-primary flex-grow-1 py-2 fw-bold rounded-3"
@@ -265,7 +395,6 @@ const PaseAbordar = () => {
             </div>
           </>
         )}
-
       </div>
     </div>
   );

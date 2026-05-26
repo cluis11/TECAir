@@ -1,4 +1,4 @@
-const API_BASE = 'http://192.168.0.49:5103';
+const API_BASE = 'http://10.241.87.221:5103';
 
 export const login = async (correo, contrasena) => {
     const res = await fetch(`${API_BASE}/usuario/login`, {

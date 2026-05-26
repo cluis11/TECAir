@@ -127,7 +127,7 @@ const Admin = () => {
 
         {vistaActiva === 'vuelos' && <AdminVuelos />}
         {vistaActiva === 'rutas' && <AdminRutas />}
-        {vistaActiva === 'promo' && <Promo />}
+        {vistaActiva === 'promo' && <Promo onExito={() => setVistaActiva('dashboard')} />}
         {vistaActiva === 'clientes' && <Clientes />}
         {vistaActiva === 'checkin' && <CheckIn />}
         {vistaActiva === 'maletas' && <Maletas />}

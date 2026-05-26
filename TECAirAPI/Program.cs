@@ -36,6 +36,9 @@ builder.Services.AddScoped<IReservaService, ReservaService>();
 builder.Services.AddScoped<IBoletoRepository, BoletoRepository>();
 builder.Services.AddScoped<ICheckinService, CheckinService>();
 
+// PDF
+builder.Services.AddScoped<IPdfService, PdfService>();
+
 // Maletas
 builder.Services.AddScoped<IMaletaRepository, MaletaRepository>();
 builder.Services.AddScoped<IMaletaService, MaletaService>();
@@ -52,8 +55,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+// Crear carpeta wwwroot/imagenes si no existe
+var imagenesPath = Path.Combine(app.Environment.WebRootPath ?? 
+    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "imagenes");
+if (!Directory.Exists(imagenesPath))
+    Directory.CreateDirectory(imagenesPath);
 
+app.UseCors("AllowAll");
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.MapControllers();
 
