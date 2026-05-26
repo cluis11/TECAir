@@ -12,4 +12,6 @@ public class BoletoDetalleDTO
     public int? idAsiento { get; set; }
     public string Fila { get; set; } = string.Empty;
     public string Columna { get; set; } = string.Empty;
+    public string PuertaEmbarque { get; set; } = string.Empty;
+    public bool YaCheckin { get; set; }
 }

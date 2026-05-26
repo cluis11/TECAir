@@ -83,11 +83,25 @@ public class ReservaRepository : IReservaRepository
     {
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
-        using var cmd = new NpgsqlCommand(
-            "UPDATE reserva SET estado = 'pagada' WHERE id_reserva = @idReserva AND estado = 'pendiente'", conn);
-        cmd.Parameters.AddWithValue("idReserva", idReserva);
-        var rows = await cmd.ExecuteNonQueryAsync();
-        return rows > 0;
+
+        // Actualizar reserva
+        using (var cmd = new NpgsqlCommand(
+            "UPDATE reserva SET estado = 'pagada' WHERE id_reserva = @idReserva AND estado = 'pendiente'", conn))
+        {
+            cmd.Parameters.AddWithValue("idReserva", idReserva);
+            var rows = await cmd.ExecuteNonQueryAsync();
+            if (rows == 0) return false;
+        }
+
+        // Actualizar boletos
+        using (var cmd = new NpgsqlCommand(
+            "UPDATE boleto SET estado = 'pagado' WHERE id_reserva = @idReserva", conn))
+        {
+            cmd.Parameters.AddWithValue("idReserva", idReserva);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        return true;
     }
 
     public async Task<bool> CancelarReserva(int idReserva)
