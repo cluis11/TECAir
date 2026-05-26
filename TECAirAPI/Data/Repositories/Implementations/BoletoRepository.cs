@@ -96,7 +96,6 @@ public class BoletoRepository : IBoletoRepository
         return null;
     }
 
-
     // -----------------------------------------------
     // Parte interna
     // -----------------------------------------------
@@ -105,17 +104,18 @@ public class BoletoRepository : IBoletoRepository
         using var cmd = new NpgsqlCommand(
             "SELECT b.id_boleto, b.id_pasajero, p.nombre || ' ' || p.ap1 AS nombre_pasajero, " +
             "b.id_itinerario, b.id_asiento, " +
-            "a.fila, a.columna, " +                          // ✅ fila y columna
+            "a.fila, a.columna, " +
             "i.salida, i.puerta_embarque, " +
-            "ao.ciudad AS ciudad_origen, ad.ciudad AS ciudad_destino " +
+            "ao.ciudad AS ciudad_origen, ad.ciudad AS ciudad_destino, " +
+            "b.ya_checkin " +
             "FROM boleto b " +
             "JOIN pasajero p ON p.pasaporte = b.id_pasajero " +
             "JOIN itinerario i ON i.id_itinerario = b.id_itinerario " +
             "JOIN vuelo v ON v.id_vuelo = i.id_vuelo " +
             "JOIN aeropuerto ao ON ao.id_aeropuerto = v.id_origen " +
             "JOIN aeropuerto ad ON ad.id_aeropuerto = v.id_destino " +
-            "LEFT JOIN asiento a ON a.id_asiento = b.id_asiento " + // ✅ LEFT JOIN porque puede no tener asiento aún
-            "WHERE b.id_reserva = @idReserva", conn);
+            "LEFT JOIN asiento a ON a.id_asiento = b.id_asiento " +
+            "WHERE b.id_reserva = @idReserva AND b.estado = 'pagado' AND b.ya_checkin = false", conn);
         cmd.Parameters.AddWithValue("idReserva", idReserva);
         using var reader = await cmd.ExecuteReaderAsync();
 
@@ -132,8 +132,10 @@ public class BoletoRepository : IBoletoRepository
                 Fila           = reader.IsDBNull(5) ? "" : reader.GetString(5),
                 Columna        = reader.IsDBNull(6) ? "" : reader.GetString(6),
                 Salida         = reader.GetTimeSpan(7),
+                PuertaEmbarque = reader.GetString(8),
                 CiudadOrigen   = reader.GetString(9),
                 CiudadDestino  = reader.GetString(10),
+                YaCheckin      = reader.GetBoolean(11),
             });
         }
         return boletos;

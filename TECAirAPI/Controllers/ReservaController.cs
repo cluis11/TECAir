@@ -9,7 +9,7 @@ namespace TECAirAPI.Controllers;
 [Route("[controller]")]
 public class ReservaController : ControllerBase
 {
-     private readonly IReservaService _reservaService;
+    private readonly IReservaService _reservaService;
 
     public ReservaController(IReservaService reservaService)
     {
@@ -35,5 +35,21 @@ public class ReservaController : ControllerBase
     {
         var result = await _reservaService.ObtenerReserva(id);
         return Ok(result);
+    }
+
+    [HttpPut("{id}/pagar")]
+    public async Task<IActionResult> Pagar(int id)
+    {
+        var result = await _reservaService.PagarReserva(id);
+        if (!result) return BadRequest("La reserva no existe o ya fue pagada/cancelada.");
+        return Ok();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Cancelar(int id)
+    {
+        var result = await _reservaService.CancelarReserva(id);
+        if (!result) return BadRequest("La reserva no existe o ya fue pagada/cancelada.");
+        return Ok();
     }
 }

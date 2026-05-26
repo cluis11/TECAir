@@ -49,7 +49,7 @@ public class ReservaRepository : IReservaRepository
     }
 
     public async Task<Reserva> GetById(int id)
-    {    
+    {
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
@@ -79,10 +79,42 @@ public class ReservaRepository : IReservaRepository
         return reservas;
     }
 
+    public async Task<bool> PagarReserva(int idReserva)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
 
+        // Actualizar reserva
+        using (var cmd = new NpgsqlCommand(
+            "UPDATE reserva SET estado = 'pagada' WHERE id_reserva = @idReserva AND estado = 'pendiente'", conn))
+        {
+            cmd.Parameters.AddWithValue("idReserva", idReserva);
+            var rows = await cmd.ExecuteNonQueryAsync();
+            if (rows == 0) return false;
+        }
 
+        // Actualizar boletos
+        using (var cmd = new NpgsqlCommand(
+            "UPDATE boleto SET estado = 'pagado' WHERE id_reserva = @idReserva", conn))
+        {
+            cmd.Parameters.AddWithValue("idReserva", idReserva);
+            await cmd.ExecuteNonQueryAsync();
+        }
 
-    
+        return true;
+    }
+
+    public async Task<bool> CancelarReserva(int idReserva)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            "UPDATE reserva SET estado = 'cancelada' WHERE id_reserva = @idReserva AND estado = 'pendiente'", conn);
+        cmd.Parameters.AddWithValue("idReserva", idReserva);
+        var rows = await cmd.ExecuteNonQueryAsync();
+        return rows > 0;
+    }
+
     //----------------------------------------------
     // Parte Interna
     //----------------------------------------------
@@ -90,7 +122,7 @@ public class ReservaRepository : IReservaRepository
     private async Task CreatePostPasajeroCommand(NpgsqlConnection conn, PasajeroReservaDTO pasajero)
     {
         var cmd = new NpgsqlCommand(
-            "INSERT INTO pasajero (pasaporte, nombre, ap1, ap2, nacionalidad, fecha_nacimiento) " + 
+            "INSERT INTO pasajero (pasaporte, nombre, ap1, ap2, nacionalidad, fecha_nacimiento) " +
             "VALUES (@pasaporte, @nombre, @ap1, @ap2, @nacionalidad, @fechaNacimiento) " +
             "ON CONFLICT (pasaporte) DO NOTHING", conn);
         cmd.Parameters.AddWithValue("pasaporte", pasajero.Pasaporte);
@@ -105,19 +137,19 @@ public class ReservaRepository : IReservaRepository
     private async Task<int> CreatePostReservaCommand(NpgsqlConnection conn, CrearReservaDTO reserva)
     {
         var cmd = new NpgsqlCommand(
-            "INSERT INTO reserva (id_user, pasaporte_titular, fecha) " + 
-            "VALUES (@id_user, @pasaporte, CURRENT_DATE) " + 
+            "INSERT INTO reserva (id_user, pasaporte_titular, fecha) " +
+            "VALUES (@id_user, @pasaporte, CURRENT_DATE) " +
             "RETURNING id_reserva", conn);
         cmd.Parameters.AddWithValue("id_user", reserva.id_usuario);
         cmd.Parameters.AddWithValue("pasaporte", reserva.PasaporteTitular);
         return (int)await cmd.ExecuteScalarAsync();
     }
-    
+
     private async Task CreatePostBoletoCommand(NpgsqlConnection conn, string pasaporte, BoletoReservaDTO boleto, int idReserva)
     {
         var cmd = new NpgsqlCommand(
             "INSERT INTO boleto (id_pasajero, id_itinerario, id_asiento, id_reserva, estado, ya_checkin) " +
-                    "VALUES (@pasaporte, @idItinerario, @idAsiento, @idReserva, 'pendiente', false)", conn);
+            "VALUES (@pasaporte, @idItinerario, @idAsiento, @idReserva, 'pendiente', false)", conn);
         cmd.Parameters.AddWithValue("pasaporte", pasaporte);
         cmd.Parameters.AddWithValue("idItinerario", boleto.id_itinerario);
         cmd.Parameters.AddWithValue("idAsiento", (object?)boleto.id_asiento ?? DBNull.Value);
