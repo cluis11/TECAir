@@ -184,7 +184,7 @@ const RegistroPromocion = () => {
       porcentaje: parseFloat(promocion.porcentaje),
       inicio: promocion.fechaInicio,
       fin: promocion.fechaFin,
-      imagen: null
+      imagen: promocion.imagenUrl || null
     };
 
     try {
@@ -418,14 +418,25 @@ const RegistroPromocion = () => {
 
         {/* Imagen */}
         <div className="input-field" style={{ gridColumn: 'span 2' }}>
-          <label>Imagen publicitaria (URL) — Opcional</label>
+          <label>Imagen publicitaria — Opcional</label>
           <input
-            type="text"
-            name="imagenUrl"
-            value={promocion.imagenUrl}
-            onChange={handleChange}
-            placeholder="https://ejemplo/costarica.png"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const archivo = e.target.files[0];
+              if (!archivo) return;
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setPromocion(prev => ({ ...prev, imagenUrl: reader.result }));
+              };
+              reader.readAsDataURL(archivo);
+            }}
           />
+          {promocion.imagenUrl && (
+            <img src={promocion.imagenUrl} alt="preview"
+              className="mt-2 rounded-3 w-100"
+              style={{ maxHeight: '180px', objectFit: 'cover' }} />
+          )}
         </div>
 
         <button type="submit" className="btn-save">

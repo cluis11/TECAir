@@ -66,11 +66,10 @@ const Promo = () => {
                                     onClick={() => navigate('/', { state: { idRuta: promo.idRuta } })}
                                 >
                                     <div className="row g-0 h-100 align-items-stretch">
-
-                                        {/* Imagen fija */}
                                         <div className="col-5 position-relative">
+                                        {/* Imagen fija */}
                                             <img
-                                                src={IMAGEN_FIJA}
+                                                src={promo.imagen || '../imagen/costarica.png'}
                                                 alt={`Vuelo a ${promo.ciudadDestino}`}
                                                 className="w-100 h-100 position-absolute top-0 start-0"
                                                 style={{ objectFit: 'cover' }}

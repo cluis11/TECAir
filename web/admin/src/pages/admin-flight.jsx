@@ -13,6 +13,7 @@ const AperturaVuelos = () => {
   const [vistaActiva, setVistaActiva] = useState('apertura'); // 'apertura' | 'cierre'
   const [busquedaCierre, setBusquedaCierre] = useState({ idRuta: '', fecha: '' });
   const [itinerariosAbiertos, setItinerariosAbiertos] = useState([]);
+  const [resumenCierre, setResumenCierre] = useState(null);
 
   useEffect(() => {
     fetchRutas();
@@ -147,7 +148,8 @@ const AperturaVuelos = () => {
     try {
       const res = await fetch(`${API_BASE}/itinerario/cerrar/${idItinerario}`, { method: 'PUT' });
       if (res.ok) {
-        alert('Itinerario cerrado con éxito.');
+        const data = await res.json();
+        setResumenCierre(data);
         setItinerariosAbiertos(prev => prev.filter(i => i.idItinerario !== idItinerario));
       } else {
         alert('Ocurrió un error inesperado. Intente de nuevo.');
@@ -348,6 +350,62 @@ const AperturaVuelos = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal Resumen de Cierre */}
+      {resumenCierre && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{ background: 'rgba(0,0,0,0.5)', zIndex: 9999 }}
+        >
+          <div className="card border-0 shadow-lg rounded-4 p-4" style={{ width: '520px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h4 className="fw-bold mb-1">Resumen de Cierre</h4>
+            <p className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>
+              {resumenCierre.ciudadOrigen} → {resumenCierre.ciudadDestino} · {resumenCierre.fecha} · {resumenCierre.salida}
+            </p>
+
+            <div className="d-flex gap-3 mb-3">
+              <div className="alert alert-primary py-2 px-3 mb-0 flex-grow-1 text-center">
+                <div className="fw-bold fs-4">{resumenCierre.totalPasajeros}</div>
+                <small>Pasajeros</small>
+              </div>
+              <div className="alert alert-success py-2 px-3 mb-0 flex-grow-1 text-center">
+                <div className="fw-bold fs-4">{resumenCierre.totalMaletas}</div>
+                <small>Maletas</small>
+              </div>
+            </div>
+
+            <div className="table-responsive mb-3">
+              <table className="table table-sm table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Pasajero</th>
+                    <th>Pasaporte</th>
+                    <th className="text-center">Maletas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumenCierre.pasajeros?.map((p, i) => (
+                    <tr key={i}>
+                      <td className="fw-semibold">{p.nombre}</td>
+                      <td className="text-muted">{p.pasaporte}</td>
+                      <td className="text-center">
+                        <span className="badge bg-primary">{p.cantidadMaletas}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              className="btn btn-primary w-100 fw-bold"
+              onClick={() => setResumenCierre(null)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

@@ -5,7 +5,7 @@ using TECAirAPI.DTOs;
 
 namespace TECAirAPI.Services.Implementations;
 
-public class ItinerarioService: IItinerarioService
+public class ItinerarioService : IItinerarioService
 {
     private readonly IItinerarioRepository _itinerarioRepo;
 
@@ -23,6 +23,7 @@ public class ItinerarioService: IItinerarioService
     {
         return await _itinerarioRepo.GetAsientos(id);
     }
+
     public async Task<IEnumerable<Itinerario>> Abrir(ItinerarioDTO dto)
     {
         return await _itinerarioRepo.AbrirVuelos(dto);
@@ -31,5 +32,10 @@ public class ItinerarioService: IItinerarioService
     public async Task Cerrar(int id)
     {
         await _itinerarioRepo.CerrarItinerario(id);
+    }
+
+    public async Task<ResumenCierreDTO> GetResumenCierre(int idItinerario)
+    {
+        return await _itinerarioRepo.GetResumenCierre(idItinerario);
     }
 }
