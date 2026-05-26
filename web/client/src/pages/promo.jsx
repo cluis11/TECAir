@@ -69,7 +69,7 @@ const Promo = () => {
                                         <div className="col-5 position-relative">
                                         {/* Imagen fija */}
                                             <img
-                                                src={promo.imagen || '../imagen/costarica.png'} {/* Imagen de defecto */}
+                                                src={promo.imagen || '../imagen/costarica.png'}
                                                 alt={`Vuelo a ${promo.ciudadDestino}`}
                                                 className="w-100 h-100 position-absolute top-0 start-0"
                                                 style={{ objectFit: 'cover' }}
