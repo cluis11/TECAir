@@ -5,8 +5,6 @@ import Navbar from './Navbar';
 import '../App.css';
 
 const API_BASE = process.env.REACT_APP_API_URL;
-const IMAGEN_FIJA = '../imagen/costarica.png';
-
 const Promo = () => {
     const navigate = useNavigate();
     const [promociones, setPromociones] = useState([]);
@@ -66,10 +64,14 @@ const Promo = () => {
                                     onClick={() => navigate('/', { state: { idRuta: promo.idRuta } })}
                                 >
                                     <div className="row g-0 h-100 align-items-stretch">
-                                        <div className="col-5 position-relative">
+
                                         {/* Imagen fija */}
+                                        <div className="col-5 position-relative">
                                             <img
-                                                src={promo.imagen || '../imagen/costarica.png'}
+                                                src={promo.imagen
+                                                        ? `${process.env.REACT_APP_API_URL}${promo.imagen}`
+                                                        : 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80'
+                                                    }
                                                 alt={`Vuelo a ${promo.ciudadDestino}`}
                                                 className="w-100 h-100 position-absolute top-0 start-0"
                                                 style={{ objectFit: 'cover' }}

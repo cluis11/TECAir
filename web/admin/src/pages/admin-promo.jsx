@@ -3,7 +3,7 @@ import './forms.css';
 
 const API_BASE = process.env.REACT_APP_API_URL;
 
-const RegistroPromocion = () => {
+const RegistroPromocion = ({ onExito }) => {
 
   const estadoInicialPromocion = {
     idPromo: null,
@@ -151,7 +151,7 @@ const RegistroPromocion = () => {
       precioOferta: ruta ? (ruta.precio * (1 - promo.porcentaje / 100)).toFixed(2) : '',
       fechaInicio: formatFecha(promo.inicio),
       fechaFin: formatFecha(promo.fin),
-      imagenUrl: promo.imagen || ''
+      imagenUrl: promo.imagen ? `${API_BASE}${promo.imagen}` : ''
     });
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
@@ -207,6 +207,7 @@ const RegistroPromocion = () => {
         setPromocion(estadoInicialPromocion);
         setDestinoTocado(false);
         fetchPromociones();
+        if (onExito) onExito();
       } else if (res.status === 400) {
         alert('Datos invalidos. Verifique que las fechas y el porcentaje sean correctos.');
       } else if (res.status === 404) {
@@ -223,7 +224,6 @@ const RegistroPromocion = () => {
   return (
     <div className="form-container">
 
-      {/* TABLA DE PROMOCIONES */}
       <h2 className="mb-1">Promociones</h2>
       <p className="text-muted mb-3" style={{ fontSize: '0.9rem' }}>
         Administre las promociones activas de la aerolinea.
@@ -275,7 +275,6 @@ const RegistroPromocion = () => {
         </div>
       )}
 
-      {/* FORMULARIO CREAR / EDITAR */}
       <h2 className="mb-1">{modoEdicion ? 'Editar Promocion' : 'Crear Nueva Promocion'}</h2>
 
       {modoEdicion && (
@@ -289,7 +288,6 @@ const RegistroPromocion = () => {
 
       <form className="form-grid" onSubmit={handleSubmit}>
 
-        {/* Origen */}
         <div className="input-field">
           <label>Aeropuerto de Origen</label>
           <select
@@ -297,7 +295,6 @@ const RegistroPromocion = () => {
             value={promocion.origen}
             onChange={handleOrigenChange}
             disabled={modoEdicion}
-            className={modoEdicion ? '' : ''}
             required
           >
             <option value="">-- Seleccione origen --</option>
@@ -307,7 +304,6 @@ const RegistroPromocion = () => {
           </select>
         </div>
 
-        {/* Destino */}
         <div className="input-field">
           <label>Aeropuerto de Destino</label>
           <select
@@ -329,7 +325,6 @@ const RegistroPromocion = () => {
           )}
         </div>
 
-        {/* Tercer selector si hay ambigüedad */}
         {hayAmbiguedad && !modoEdicion && (
           <div className="input-field" style={{ gridColumn: 'span 2' }}>
             <label>Tipo de Ruta</label>
@@ -348,7 +343,6 @@ const RegistroPromocion = () => {
           </div>
         )}
 
-        {/* Precio Base */}
         <div className="input-field">
           <label>Precio Base (USD)</label>
           <input
@@ -360,7 +354,6 @@ const RegistroPromocion = () => {
           />
         </div>
 
-        {/* Porcentaje */}
         <div className="input-field">
           <label>Porcentaje de Descuento (%)</label>
           <input
@@ -377,7 +370,6 @@ const RegistroPromocion = () => {
           />
         </div>
 
-        {/* Precio Oferta */}
         <div className="input-field" style={{ gridColumn: 'span 2' }}>
           <label>Precio en Oferta (USD)</label>
           <input
@@ -392,7 +384,6 @@ const RegistroPromocion = () => {
           />
         </div>
 
-        {/* Fechas */}
         <div className="input-field">
           <label>Inicio de Vigencia</label>
           <input
@@ -416,7 +407,6 @@ const RegistroPromocion = () => {
           />
         </div>
 
-        {/* Imagen */}
         <div className="input-field" style={{ gridColumn: 'span 2' }}>
           <label>Imagen publicitaria — Opcional</label>
           <input
