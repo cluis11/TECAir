@@ -1,174 +1,357 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './forms.css';
 
-const RegistroVueloAIRTec = () => {
-  
-  // DATOS PRUEBA
-  const [avionesDisponibles] = useState([
-    { matricula: 'TI-TEC1', modelo: 'Boeing 737', capacidad: 160 },
-    { matricula: 'TI-TEC2', modelo: 'Airbus A320', capacidad: 180 },
-    { matricula: 'TI-TEC3', modelo: 'Embraer 190', capacidad: 100 }
-  ]);
+const API_BASE = process.env.REACT_APP_API_URL;
 
-  // Estado para el formulario de vuelo
-  const estadoInicialVuelo = {
-    codigoVuelo: '',
-    aeropuertoInicial: '',
-    aeropuertoDestino: '',
-    matriculaAvion: '',
-    capacidadPasajeros: 0, 
-    fechaSalida: '',
-    fechaLlegada: '',
-    precioBase: '',
-    estadoOperativo: 'Abierto'
-  };
+const AperturaVuelos = () => {
 
-  const [vuelo, setVuelo] = useState(estadoInicialVuelo);
+  const [rutas, setRutas] = useState([]);
+  const [aeropuertos, setAeropuertos] = useState([]);
+  const [rutaSeleccionada, setRutaSeleccionada] = useState(null);
+  const [puertas, setPuertas] = useState({});
+  const [tramosForm, setTramosForm] = useState([]);
+  const [vistaActiva, setVistaActiva] = useState('apertura'); // 'apertura' | 'cierre'
+  const [busquedaCierre, setBusquedaCierre] = useState({ idRuta: '', fecha: '' });
+  const [itinerariosAbiertos, setItinerariosAbiertos] = useState([]);
 
+  useEffect(() => {
+    fetchRutas();
+    fetchAeropuertos();
+  }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'matriculaAvion') {
-      const avionSeleccionado = avionesDisponibles.find(a => a.matricula === value);
-      setVuelo(prev => ({
-        ...prev,
-        matriculaAvion: value,
-        capacidadPasajeros: avionSeleccionado ? avionSeleccionado.capacidad : 0
-      }));
-    } else {
-      setVuelo(prev => ({ ...prev, [name]: value }));
+  const fetchRutas = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/ruta`);
+      const data = await res.json();
+      setRutas(data);
+    } catch (error) {
+      console.error('Error al cargar rutas:', error);
     }
   };
 
-  const handleSubmit = (e) => {
+  const fetchAeropuertos = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/aeropuerto`);
+      const data = await res.json();
+      setAeropuertos(data);
+    } catch (error) {
+      console.error('Error al cargar aeropuertos:', error);
+    }
+  };
+
+  const fetchPuertas = async (idAeropuerto) => {
+    if (puertas[idAeropuerto]) return;
+    try {
+      const res = await fetch(`${API_BASE}/aeropuerto/${idAeropuerto}/puertas`);
+      const data = await res.json();
+      setPuertas(prev => ({ ...prev, [idAeropuerto]: data }));
+    } catch (error) {
+      console.error(`Error al cargar puertas:`, error);
+    }
+  };
+
+  const getNombreAeropuerto = (id) => {
+    const a = aeropuertos.find(a => a.id_aeropuerto === id);
+    return a ? `${a.ciudad} (${a.codigo})` : `ID ${id}`;
+  };
+
+  const handleSeleccionarRuta = async (e) => {
+    const idRuta = parseInt(e.target.value);
+    const ruta = rutas.find(r => r.id_ruta === idRuta);
+    if (!ruta) { setRutaSeleccionada(null); setTramosForm([]); return; }
+
+    setRutaSeleccionada(ruta);
+    const forms = ruta.vuelos.map(v => ({
+      idVuelo: v.id_vuelo,
+      idOrigen: v.id_origen,
+      idDestino: v.id_destino,
+      fecha: '',
+      salida: '',
+      llegada: '',
+      puertaEmbarque: ''
+    }));
+    setTramosForm(forms);
+
+    for (const v of ruta.vuelos) {
+      await fetchPuertas(v.id_origen);
+    }
+  };
+
+  const handleTramoChange = (index, campo, valor) => {
+    const nuevos = [...tramosForm];
+    nuevos[index][campo] = valor;
+    setTramosForm(nuevos);
+  };
+
+  const handleSubmitApertura = async (e) => {
     e.preventDefault();
-    alert(`Vuelo ${vuelo.codigoVuelo} registrado con éxito. Capacidad máxima: ${vuelo.capacidadPasajeros} pasajeros.`);
-    setVuelo(estadoInicialVuelo);
+    const body = {
+      IdRuta: rutaSeleccionada.id_ruta,
+      Vuelos: tramosForm.map(t => ({
+        IdVuelo: t.idVuelo,
+        Fecha: t.fecha,
+        Salida: t.salida,
+        Llegada: t.llegada,
+        PuertaEmbarque: t.puertaEmbarque
+      }))
+    };
+    try {
+      const res = await fetch(`${API_BASE}/itinerario/abrir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        alert('Vuelos abiertos con éxito.');
+        setRutaSeleccionada(null);
+        setTramosForm([]);
+      } else if (res.status === 400) {
+        alert('Datos inválidos. Verifique los horarios y puertas.');
+      } else {
+        alert('Ocurrió un error inesperado. Intente de nuevo.');
+      }
+    } catch (error) {
+      alert('No se pudo conectar con el servidor.');
+    }
+  };
+
+  const handleBuscarItinerarios = async (e) => {
+    e.preventDefault();
+    const ruta = rutas.find(r => r.id_ruta === parseInt(busquedaCierre.idRuta));
+    if (!ruta) return;
+    try {
+      const res = await fetch(
+        `${API_BASE}/itinerario/buscar?idOrigen=${ruta.id_origen}&idDestino=${ruta.id_destino}&fecha=${busquedaCierre.fecha}&pasajeros=1`
+      );
+      const data = await res.json();
+      const itinerarios = data.flatMap(resultado =>
+        resultado.vuelos.map(v => ({
+          idItinerario: v.idItinerario,
+          ciudadOrigen: v.ciudadOrigen,
+          ciudadDestino: v.ciudadDestino,
+          salida: v.salida,
+          llegada: v.llegada,
+          puerta: v.puertaEmbarque,
+          asientosLibres: v.asientosLibres
+        }))
+      );
+      setItinerariosAbiertos(itinerarios);
+      if (itinerarios.length === 0) alert('No hay itinerarios abiertos para esa ruta y fecha.');
+    } catch (error) {
+      alert('No se pudo conectar con el servidor.');
+    }
+  };
+
+  const handleCerrar = async (idItinerario) => {
+    if (!window.confirm('¿Seguro que desea cerrar este itinerario?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/itinerario/cerrar/${idItinerario}`, { method: 'PUT' });
+      if (res.ok) {
+        alert('Itinerario cerrado con éxito.');
+        setItinerariosAbiertos(prev => prev.filter(i => i.idItinerario !== idItinerario));
+      } else {
+        alert('Ocurrió un error inesperado. Intente de nuevo.');
+      }
+    } catch (error) {
+      alert('No se pudo conectar con el servidor.');
+    }
   };
 
   return (
     <div className="form-container">
-      <h2>Registro de Vuelos</h2>
-      <p style={{ color: '#8892b0', fontSize: '0.9rem', marginBottom: '25px' }}>
-        Defina el origen, destino, asignación de aeronave, horarios y guarde el vuelo en el sistema.
-      </p>
-      
-      <form className="form-grid" onSubmit={handleSubmit}>
-        
-        {/* Código del Vuelo */}
-        <div className="input-field" style={{ gridColumn: 'span 2' }}> 
-          {/* Se expande a 2 columnas ya que quitamos el selector de estado al lado */}
-          <label>Código de Vuelo</label>
-          <input 
-            type="text" 
-            name="codigoVuelo"
-            value={vuelo.codigoVuelo}
-            onChange={handleChange}
-            placeholder="Ej: AT-905" 
-            required 
-          />
-        </div>
 
-        {/* Aeropuerto Inicial */}
-        <div className="input-field">
-          <label>Aeropuerto Inicial</label>
-          <input 
-            type="text" 
-            name="aeropuertoInicial"
-            value={vuelo.aeropuertoInicial}
-            onChange={handleChange}
-            placeholder="Ej: Juan Santamaría (SJO)" 
-            required
-          />
-        </div>
-
-        {/* Aeropuerto Destino */}
-        <div className="input-field">
-          <label>Aeropuerto Destino Final</label>
-          <input 
-            type="text" 
-            name="aeropuertoDestino"
-            value={vuelo.aeropuertoDestino}
-            onChange={handleChange}
-            placeholder="Ej: Adolfo Suárez (MAD)" 
-            required
-          />
-        </div>
-
-        {/* Asignación de Avión por Matrícula */}
-        <div className="input-field">
-          <label>Matrícula del Avión</label>
-          <select 
-            name="matriculaAvion" 
-            value={vuelo.matriculaAvion} 
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Seleccione una Aeronave --</option>
-            {avionesDisponibles.map(avion => (
-              <option key={avion.matricula} value={avion.matricula}>
-                {avion.matricula} ({avion.modelo})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Capacidad de Pasajeros */}
-        <div className="input-field">
-          <label>Capacidad Bloqueada (Asientos)</label>
-          <input 
-            type="text" 
-            name="capacidadPasajeros"
-            value={vuelo.capacidadPasajeros > 0 ? `${vuelo.capacidadPasajeros} pasajeros` : 'Seleccione un avión'}
-            readOnly
-          />
-        </div>
-
-        {/* Horarios de Operación */}
-        <div className="input-field">
-          <label>Fecha y Hora de Salida</label>
-          <input 
-            type="datetime-local" 
-            name="fechaSalida"
-            value={vuelo.fechaSalida}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-field">
-          <label>Fecha y Hora de Llegada</label>
-          <input 
-            type="datetime-local" 
-            name="fechaLlegada"
-            value={vuelo.fechaLlegada}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-field" style={{ gridColumn: 'span 2' }}>
-          <label>Precio Base del Boleto (USD)</label>
-          <input 
-            type="number" 
-            name="precioBase"
-            value={vuelo.precioBase}
-            onChange={handleChange}
-            placeholder="Ej: 600" 
-            min="0"
-            step="0.01"
-            required
-          />
-        </div>
-
-        <button type="submit" className="btn-save">
-          Guardar Vuelo
+      {/* Tabs apertura / cierre */}
+      <div className="d-flex gap-3 mb-4">
+        <button
+          type="button"
+          className={`btn ${vistaActiva === 'apertura' ? 'btn-primary' : 'btn-outline-primary'} fw-bold px-4`}
+          onClick={() => setVistaActiva('apertura')}
+        >
+          Apertura de Vuelos
         </button>
+        <button
+          type="button"
+          className={`btn ${vistaActiva === 'cierre' ? 'btn-primary' : 'btn-outline-primary'} fw-bold px-4`}
+          onClick={() => setVistaActiva('cierre')}
+        >
+          Cierre de Vuelos
+        </button>
+      </div>
 
-      </form>
+      {/* ====== APERTURA ====== */}
+      {vistaActiva === 'apertura' && (
+        <>
+          <h2>Apertura de Vuelos</h2>
+          <p style={{ color: '#8892b0', fontSize: '0.9rem', marginBottom: '25px' }}>
+            Seleccione una ruta y asigne fecha, horarios y puerta de embarque a cada tramo.
+          </p>
+
+          <form className="form-grid" onSubmit={handleSubmitApertura}>
+
+            {/* Selector de ruta */}
+            <div className="input-field" style={{ gridColumn: 'span 2' }}>
+              <label>Ruta</label>
+              <select onChange={handleSeleccionarRuta} required defaultValue="">
+                <option value="">-- Seleccione una ruta --</option>
+                {rutas.map(r => (
+                  <option key={r.id_ruta} value={r.id_ruta}>
+                    {getNombreAeropuerto(r.id_origen)} → {getNombreAeropuerto(r.id_destino)} · ${r.precio}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Campos por tramo */}
+            {tramosForm.map((tramo, index) => (
+              <React.Fragment key={tramo.idVuelo}>
+
+                {/* Separador de tramo */}
+                <div style={{ gridColumn: 'span 2', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '4px' }}>
+                  <p style={{ fontWeight: '700', color: '#0d6efd', marginBottom: '0', fontSize: '0.9rem' }}>
+                    Tramo {index + 1} — {getNombreAeropuerto(tramo.idOrigen)} → {getNombreAeropuerto(tramo.idDestino)}
+                  </p>
+                </div>
+
+                <div className="input-field">
+                  <label>Fecha</label>
+                  <input
+                    type="date"
+                    value={tramo.fecha}
+                    onChange={e => handleTramoChange(index, 'fecha', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+
+                <div className="input-field">
+                  <label>Puerta de Embarque</label>
+                  <select
+                    value={tramo.puertaEmbarque}
+                    onChange={e => handleTramoChange(index, 'puertaEmbarque', e.target.value)}
+                    required
+                  >
+                    <option value="">-- Seleccione puerta --</option>
+                    {(puertas[tramo.idOrigen] || []).map(p => (
+                      <option key={p.puertaEmbarque} value={p.puertaEmbarque}>
+                        {p.puertaEmbarque}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="input-field">
+                  <label>Hora de Salida</label>
+                  <input
+                    type="time"
+                    value={tramo.salida}
+                    onChange={e => handleTramoChange(index, 'salida', e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="input-field">
+                  <label>Hora de Llegada</label>
+                  <input
+                    type="time"
+                    value={tramo.llegada}
+                    onChange={e => handleTramoChange(index, 'llegada', e.target.value)}
+                    required
+                  />
+                </div>
+
+              </React.Fragment>
+            ))}
+
+            {rutaSeleccionada && (
+              <button type="submit" className="btn-save">
+                Abrir Vuelos
+              </button>
+            )}
+
+          </form>
+        </>
+      )}
+
+      {/* ====== CIERRE ====== */}
+      {vistaActiva === 'cierre' && (
+        <>
+          <h2>Cierre de Vuelos</h2>
+          <p style={{ color: '#8892b0', fontSize: '0.9rem', marginBottom: '25px' }}>
+            Busque itinerarios abiertos por ruta y fecha para cerrarlos manualmente.
+          </p>
+
+          <form className="form-grid" onSubmit={handleBuscarItinerarios}>
+            <div className="input-field">
+              <label>Ruta</label>
+              <select
+                value={busquedaCierre.idRuta}
+                onChange={e => setBusquedaCierre(prev => ({ ...prev, idRuta: e.target.value }))}
+                required
+              >
+                <option value="">-- Seleccione una ruta --</option>
+                {rutas.map(r => (
+                  <option key={r.id_ruta} value={r.id_ruta}>
+                    {getNombreAeropuerto(r.id_origen)} → {getNombreAeropuerto(r.id_destino)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-field">
+              <label>Fecha</label>
+              <input
+                type="date"
+                value={busquedaCierre.fecha}
+                onChange={e => setBusquedaCierre(prev => ({ ...prev, fecha: e.target.value }))}
+                required
+              />
+            </div>
+
+            <button type="submit" className="btn-save">
+              Buscar Itinerarios
+            </button>
+          </form>
+
+          {itinerariosAbiertos.length > 0 && (
+            <div className="table-responsive mt-4">
+              <table className="table table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Tramo</th>
+                    <th>Salida</th>
+                    <th>Llegada</th>
+                    <th>Puerta</th>
+                    <th>Asientos libres</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itinerariosAbiertos.map(it => (
+                    <tr key={it.idItinerario}>
+                      <td className="fw-semibold">{it.ciudadOrigen} → {it.ciudadDestino}</td>
+                      <td>{it.salida?.substring(0, 5)}</td>
+                      <td>{it.llegada?.substring(0, 5)}</td>
+                      <td>{it.puerta}</td>
+                      <td>{it.asientosLibres}</td>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleCerrar(it.idItinerario)}
+                        >
+                          Cerrar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
     </div>
   );
 };
 
-export default RegistroVueloAIRTec;
+export default AperturaVuelos;
