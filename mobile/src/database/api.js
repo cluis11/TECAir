@@ -1,4 +1,4 @@
-const API_BASE = '';
+const API_BASE = 'http://192.168.0.49:5103';
 
 export const login = async (correo, contrasena) => {
     const res = await fetch(`${API_BASE}/usuario/login`, {
@@ -10,7 +10,7 @@ export const login = async (correo, contrasena) => {
     return res.json();
 };
 
-export const regiistrarUsuario = async (datos) => {
+export const registrarUsuario = async (datos) => {
     const res = await fetch(`${API_BASE}/usuario`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

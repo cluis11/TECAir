@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { login, loginlocal } from '../database/db';
-import { getDBConnection } from '../database/db';
+import { View, Text, TextInput, Button, Alert, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { getDBConnection, loginLocal } from '../database/db';
 import * as api from '../database/api';
-
-
 
 export default function LoginScreen({ onRegister, onLogin }) {
   const [correo, setCorreo] = useState('');
@@ -18,14 +15,12 @@ export default function LoginScreen({ onRegister, onLogin }) {
     }
     setCargando(true);
     try {
-      // 1 - Intenar login con la API
       const usuario = await api.login(correo, contrasena);
       onLogin(usuario);
     } catch (error) {
-      // 2 - Si falla la API, intenar login local (SQLite)
       try {
         const db = await getDBConnection();
-        const usuarioLocal = await loginlocal(db, correo, contrasena);
+        const usuarioLocal = await loginLocal(db, correo, contrasena);
         if (usuarioLocal) {
           onLogin(usuarioLocal);
         } else {
@@ -41,34 +36,42 @@ export default function LoginScreen({ onRegister, onLogin }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>TECAir</Text>
-      <Text style={styles.subtitulo}>Inicio de sesión</Text>
+      <Text style={styles.logo}>✈️ TECAir</Text>
+      <Text style={styles.subtitulo}>Inicio de Sesión</Text>
  
+      {/* Campo: Correo Electrónico */}
+      <Text style={styles.inputLabel}>Correo electrónico *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Correo electrónico"
+        placeholder="ejemplo@correo.com"
+        placeholderTextColor="#94A3B8"
         value={correo}
         onChangeText={setCorreo}
         keyboardType="email-address"
         autoCapitalize="none"
       />
  
+      {/* Campo: Contraseña */}
+      <Text style={styles.inputLabel}>Contraseña *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Contraseña"
+        placeholder="Ingrese su contraseña"
+        placeholderTextColor="#94A3B8"
         value={contrasena}
         onChangeText={setContrasena}
         secureTextEntry
       />
  
       {cargando ? (
-        <ActivityIndicator size="large" color="#0066cc" />
+        <ActivityIndicator size="large" color="#0066cc" style={{ marginVertical: 15 }} />
       ) : (
-        <Button title="Iniciar sesión" onPress={iniciarSesion} />
+        <View style={{ marginTop: 10 }}>
+          <Button title="Iniciar Sesión" onPress={iniciarSesion} color="#0066cc" />
+        </View>
       )}
  
-      <TouchableOpacity onPress={onRegister}>
-        <Text style={styles.link}>Crear una cuenta nueva</Text>
+      <TouchableOpacity onPress={onRegister} style={styles.linkContainer}>
+        <Text style={styles.link}>¿No tienes cuenta? <Text style={styles.linkHighlight}>Regístrate aquí</Text></Text>
       </TouchableOpacity>
     </View>
   );
@@ -79,30 +82,48 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 25,
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
   },
-  titulo: {
-    fontSize: 34,
-    fontWeight: 'bold',
+  logo: {
+    fontSize: 38,
+    fontWeight: '900',
     textAlign: 'center',
+    color: '#0066cc',
+    marginBottom: 5,
   },
   subtitulo: {
-    fontSize: 20,
+    fontSize: 18,
     textAlign: 'center',
+    color: '#64748B',
     marginBottom: 30,
-    marginTop: 10,
+    fontWeight: '600',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+    marginTop: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#aaa',
+    borderColor: '#CBD5E1',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
+    backgroundColor: '#FFF',
+    color: '#1E293B',
+    fontSize: 15,
+  },
+  linkContainer: {
+    marginTop: 25,
+    alignItems: 'center',
   },
   link: {
-    textAlign: 'center',
+    color: '#64748B',
+    fontSize: 14,
+  },
+  linkHighlight: {
     color: '#0066cc',
-    fontWeight: 'bold',
-    marginTop: 20,
+    fontWeight: '700',
   },
 });

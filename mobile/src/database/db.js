@@ -27,15 +27,24 @@ export const createTables = async (db) => {
 };
 
 export const guardarUsuarioLocal = async (db, usuario) => {
+  const universidad = usuario.universidad || usuario.estudiante?.universidad || null;
+  const carnet = usuario.carnet || usuario.estudiante?.carnet || null;
+  
   await db.executeSql(
     `INSERT OR REPLACE INTO usuario 
      (id_user, correo, contrasena, nombre, ap1, ap2, telefono, es_estudiante, carnet, universidad)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      usuario.idUser, usuario.correo, usuario.contrasena,
-      usuario.nombre, usuario.ap1, usuario.ap2 ?? null,
-      usuario.telefono, usuario.esEstudiante ? 1 : 0,
-      usuario.carnet ?? null, usuario.universidad ?? null
+      usuario.idUser, 
+      usuario.correo, 
+      usuario.contrasena,
+      usuario.nombre, 
+      usuario.ap1, 
+      usuario.ap2 ?? null,
+      usuario.telefono, 
+      usuario.esEstudiante ? 1 : 0,
+      carnet, 
+      universidad
     ]
   );
 }

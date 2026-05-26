@@ -1,37 +1,170 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Button, TextInput, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, FlatList, StyleSheet, ActivityIndicator,
+  Alert, TouchableOpacity, Modal,
+} from 'react-native';
 import * as api from '../database/api';
-
-export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo, onVerDescuentos }) {
+ 
+// ─────────────────────────────────────────────────────────────
+// Utilidad: obtener un ID único de un aeropuerto de forma segura
+// ─────────────────────────────────────────────────────────────
+const getAeropuertoId = (a) => {
+  if (!a) return null;
+  return a.idAeropuerto ?? a.id_aeropuerto ?? a.id ?? a.ID ?? a.IdAeropuerto ?? null;
+};
+ 
+// ─────────────────────────────────────────────────────────────
+// DatePicker sin dependencias externas
+// ─────────────────────────────────────────────────────────────
+function DatePickerModal({ visible, value, onChange, onClose }) {
+  const today = new Date();
+  const [year,  setYear]  = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [day,   setDay]   = useState(today.getDate());
+ 
+  useEffect(() => {
+    if (visible && value) {
+      const parts = value.split('-');
+      setYear(parseInt(parts[0]));
+      setMonth(parseInt(parts[1]) - 1);
+      setDay(parseInt(parts[2]));
+    }
+  }, [visible]);
+ 
+  const MESES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DIAS_SEM = ['D','L','M','X','J','V','S'];
+  const pad      = (n) => String(n).padStart(2, '0');
+ 
+  const diasEnMes = (y, m) => new Date(y, m + 1, 0).getDate();
+  const primerDia = (y, m) => new Date(y, m, 1).getDay();
+ 
+  const mesAnterior  = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setDay(1); };
+  const mesSiguiente = () => { if (month === 11){ setMonth(0);  setYear(y => y+1); } else setMonth(m => m+1); setDay(1); };
+ 
+  const total  = diasEnMes(year, month);
+  const inicio = primerDia(year, month);
+  const celdas = Array.from({ length: inicio + total }, (_, i) => i < inicio ? null : i - inicio + 1);
+ 
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={dp.overlay}>
+        <View style={dp.modal}>
+          <View style={dp.header}>
+            <TouchableOpacity onPress={mesAnterior}  style={dp.navBtn}><Text style={dp.navTxt}>‹</Text></TouchableOpacity>
+            <Text style={dp.mesTxt}>{MESES[month]} {year}</Text>
+            <TouchableOpacity onPress={mesSiguiente} style={dp.navBtn}><Text style={dp.navTxt}>›</Text></TouchableOpacity>
+          </View>
+          <View style={dp.fila}>
+            {DIAS_SEM.map(d => <Text key={d} style={dp.diaSemana}>{d}</Text>)}
+          </View>
+          <View style={dp.grilla}>
+            {celdas.map((d, i) => (
+              <TouchableOpacity
+                key={`celda-${i}`}
+                style={[dp.celda, d === day && dp.celdaSel, !d && dp.celdaVacia]}
+                onPress={() => d && setDay(d)}
+                disabled={!d}
+              >
+                <Text style={[dp.celdaTxt, d === day && dp.celdaTxtSel]}>{d || ''}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={dp.acciones}>
+            <TouchableOpacity onPress={onClose} style={dp.btnCancelar}>
+              <Text style={dp.btnCancelarTxt}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { onChange(`${year}-${pad(month+1)}-${pad(day)}`); onClose(); }}
+              style={dp.btnConfirmar}
+            >
+              <Text style={dp.btnConfirmarTxt}>Confirmar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+ 
+// ─────────────────────────────────────────────────────────────
+// Chip de aeropuerto
+// ─────────────────────────────────────────────────────────────
+const AeropuertoChip = React.memo(({ aeropuerto, seleccionado, onPress }) => (
+  <TouchableOpacity
+    style={[styles.opcion, seleccionado && styles.opcionSeleccionada]}
+    onPress={onPress}
+  >
+    <Text style={[styles.opcionTexto, seleccionado && styles.opcionTextoSeleccionado]}>
+      {aeropuerto.ciudad} ({aeropuerto.codigo})
+    </Text>
+  </TouchableOpacity>
+));
+ 
+// ─────────────────────────────────────────────────────────────
+// Pantalla principal
+// ─────────────────────────────────────────────────────────────
+export default function VuelosScreen({ usuario, promoPreRellenada, onVolver, onSeleccionarVuelo, onVerDescuentos, onVerPerfil }) {
   const [aeropuertos, setAeropuertos] = useState([]);
-  const [idOrigen, setIdOrigen] = useState('');
-  const [idDestino, setIdDestino] = useState('');
-  const [fecha, setFecha] = useState('');
-  const [pasajeros, setPasajeros] = useState('1');
-  const [resultados, setResultados] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [buscado, setBuscado] = useState(false);
-
+  const [origenId,    setOrigenId]    = useState(null);  
+  const [destinoId,   setDestinoId]   = useState(null);  
+  const [fecha,       setFecha]       = useState('');
+  const [pasajeros,   setPasajeros]   = useState(1);
+  const [resultados,  setResultados]  = useState([]);
+  const [cargando,    setCargando]    = useState(false);
+  const [buscado,     setBuscado]     = useState(false);
+  const [mostrarDP,   setMostrarDP]   = useState(false);
+ 
+  const promoAnterior = useRef(null);
+ 
+  // ── Carga de aeropuertos ────────────────────────────────────
   useEffect(() => {
     api.getAeropuertos()
-      .then(setAeropuertos)
+      .then(data => {
+        if (data?.length > 0) console.log('[TECAir] Aeropuerto ejemplo:', JSON.stringify(data[0]));
+        setAeropuertos(data || []);
+      })
       .catch(() => Alert.alert('Error', 'No se pudieron cargar los aeropuertos.'));
   }, []);
-
+ 
+  // ── Pre-rellenar desde promo ────────────────────────────────
+  useEffect(() => {
+    if (!promoPreRellenada || aeropuertos.length === 0) return;
+    if (promoAnterior.current === promoPreRellenada) return;
+    promoAnterior.current = promoPreRellenada;
+ 
+    const origen  = aeropuertos.find(a => a.ciudad?.toLowerCase().trim() === promoPreRellenada.ciudadOrigen?.toLowerCase().trim());
+    const destino = aeropuertos.find(a => a.ciudad?.toLowerCase().trim() === promoPreRellenada.ciudadDestino?.toLowerCase().trim());
+ 
+    const idO = getAeropuertoId(origen);
+    const idD = getAeropuertoId(destino);
+ 
+    setOrigenId(idO);
+    setDestinoId(idD);
+ 
+    if (!idO || !idD) {
+      Alert.alert('Atención', 'No se encontraron por completo los aeropuertos de esta promoción en la lista local.');
+    }
+  }, [promoPreRellenada, aeropuertos]);
+ 
+  // ── Búsqueda ────────────────────────────────────────────────
   const buscar = async () => {
-    if (!idOrigen || !idDestino || !fecha || !pasajeros) {
-      Alert.alert('Error', 'Debe completar todos los campos.');
+    if (!origenId || !destinoId) {
+      Alert.alert('Error', 'Seleccione origen y destino.');
       return;
     }
-    if (idOrigen === idDestino) {
+    if (origenId === destinoId) {
       Alert.alert('Error', 'El origen y destino no pueden ser iguales.');
       return;
     }
- 
+    if (!fecha) {
+      Alert.alert('Error', 'Seleccione la fecha de salida.');
+      return;
+    }
     setCargando(true);
     setBuscado(false);
     try {
-      const data = await api.buscarVuelos(idOrigen, idDestino, fecha, pasajeros);
+      const data = await api.buscarVuelos(origenId, destinoId, fecha, String(pasajeros));
       setResultados(data);
       setBuscado(true);
     } catch {
@@ -40,195 +173,219 @@ export default function VuelosScreen({ usuario, onVolver, onSeleccionarVuelo, on
       setCargando(false);
     }
   };
-
-  const formatHora = (timeSpan) => {
-    if (!timeSpan) return '--:--';
-    return timeSpan.substring(0, 5);
-  }
-
+ 
+  const formatHora = (ts) => ts ? ts.substring(0, 5) : '--:--';
+ 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Buscar Vuelos</Text>
- 
-      {usuario && <Text style={styles.usuario}>Usuario: {usuario.correo}</Text>}
- 
-      <Text style={styles.label}>Origen</Text>
-      <View style={styles.picker}>
-        {aeropuertos.map(a => (
-          <TouchableOpacity
-            key={a.idAeropuerto}
-            style={[styles.opcion, idOrigen === String(a.idAeropuerto) && styles.opcionSeleccionada]}
-            onPress={() => setIdOrigen(String(a.idAeropuerto))}
-          >
-            <Text style={idOrigen === String(a.idAeropuerto) ? styles.opcionTextoSeleccionado : styles.opcionTexto}>
-              {a.ciudad} ({a.codigo})
-            </Text>
+      {/* Encabezado o sección superior de tu pantalla */}
+      <View style={styles.headerControl}>
+        <Text style={styles.bienvenida}>¡Hola, {usuario?.nombre || 'Explorador'}! 👋</Text>
+        
+        {/* 2. Añadimos el botón visual para ir al Perfil */}
+        {usuario && (
+          <TouchableOpacity style={styles.botonPerfilMini} onPress={onVerPerfil}>
+            <Text style={styles.textoBotonPerfil}>⚙️ Mi Perfil</Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
- 
-      <Text style={styles.label}>Destino</Text>
-      <View style={styles.picker}>
-        {aeropuertos.filter(a => String(a.idAeropuerto) !== idOrigen).map(a => (
-          <TouchableOpacity
-            key={a.idAeropuerto}
-            style={[styles.opcion, idDestino === String(a.idAeropuerto) && styles.opcionSeleccionada]}
-            onPress={() => setIdDestino(String(a.idAeropuerto))}
-          >
-            <Text style={idDestino === String(a.idAeropuerto) ? styles.opcionTextoSeleccionado : styles.opcionTexto}>
-              {a.ciudad} ({a.codigo})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
- 
-      <Text style={styles.label}>Fecha (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} placeholder="2026-06-01" value={fecha} onChangeText={setFecha} />
- 
-      <Text style={styles.label}>Pasajeros</Text>
-      <TextInput style={styles.input} placeholder="1" value={pasajeros} onChangeText={setPasajeros} keyboardType="numeric" />
- 
-      {cargando ? (
-        <ActivityIndicator size="large" color="#0066cc" />
-      ) : (
-        <Button title="Buscar vuelos" onPress={buscar} />
-      )}
- 
-      {buscado && resultados.length === 0 && (
-        <Text style={styles.sinResultados}>No se encontraron vuelos disponibles.</Text>
-      )}
+
+      <DatePickerModal
+        visible={mostrarDP}
+        value={fecha}
+        onChange={setFecha}
+        onClose={() => setMostrarDP(false)}
+      />
  
       <FlatList
         data={resultados}
-        keyExtractor={(_, i) => String(i)}
-        style={{ marginTop: 15 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.destino}>{item.ruta.ciudadOrigen} → {item.ruta.ciudadDestino}</Text>
-            <Text style={styles.precio}>${item.ruta.precio}</Text>
-            {item.vuelos.map((v, i) => (
-              <View key={i} style={styles.vuelo}>
-                <Text style={styles.tramo}>Tramo {i + 1}: {v.ciudadOrigen} → {v.ciudadDestino}</Text>
-                <Text>Salida: {formatHora(v.salida)} · Llegada: {formatHora(v.llegada)}</Text>
-                <Text>Puerta: {v.puertaEmbarque} · Asientos libres: {v.asientosLibres}</Text>
+        keyExtractor={(_, i) => `resultado-${i}`}
+        ListHeaderComponent={
+          <View style={styles.cardFormulario}>
+            <Text style={styles.tituloHeader}>Busca tu próximo destino</Text>
+ 
+            {usuario && (
+              <Text style={styles.usuarioBadget}>👋 ¡Hola, {usuario.nombre}!</Text>
+            )}
+ 
+            {/* ── ORIGEN ── */}
+            <Text style={styles.label}>📍 Origen</Text>
+            <View style={styles.picker}>
+              {aeropuertos.map((a, index) => {
+                const id = getAeropuertoId(a) || index;
+                return (
+                  <AeropuertoChip
+                    key={`origen-${id}`}
+                    aeropuerto={a}
+                    seleccionado={origenId !== null && origenId === getAeropuertoId(a)}
+                    onPress={() => setOrigenId(getAeropuertoId(a))}
+                  />
+                );
+              })}
+            </View>
+ 
+            {/* ── DESTINO ── */}
+            <Text style={styles.label}>🎯 Destino</Text>
+            <View style={styles.picker}>
+              {aeropuertos.map((a, index) => {
+                const id = getAeropuertoId(a) || index;
+                return (
+                  <AeropuertoChip
+                    key={`destino-${id}`}
+                    aeropuerto={a}
+                    seleccionado={destinoId !== null && destinoId === getAeropuertoId(a)}
+                    onPress={() => setDestinoId(getAeropuertoId(a))}
+                  />
+                );
+              })}
+            </View>
+ 
+            {/* ── FECHA ── */}
+            <Text style={styles.label}>📅 Fecha de Salida</Text>
+            <TouchableOpacity style={styles.inputFecha} onPress={() => setMostrarDP(true)} activeOpacity={0.7}>
+              <Text style={fecha ? styles.fechaTxt : styles.fechaPlaceholder}>
+                {fecha || 'Seleccionar fecha'}
+              </Text>
+              <Text style={styles.calIcon}>📆</Text>
+            </TouchableOpacity>
+ 
+            {/* ── PASAJEROS ── */}
+            <Text style={styles.label}>👥 Cantidad de Pasajeros</Text>
+            <View style={styles.stepper}>
+              <TouchableOpacity style={styles.stepBtn} onPress={() => setPasajeros(p => Math.max(1, p - 1))}>
+                <Text style={styles.stepTxt}>−</Text>
+              </TouchableOpacity>
+              <Text style={styles.stepVal}>{pasajeros}</Text>
+              <TouchableOpacity style={styles.stepBtn} onPress={() => setPasajeros(p => p + 1)}>
+                <Text style={styles.stepTxt}>+</Text>
+              </TouchableOpacity>
+            </View>
+ 
+            <TouchableOpacity style={styles.botonBuscar} onPress={buscar}>
+              <Text style={styles.textoBotonBuscar}>Buscar Vuelos</Text>
+            </TouchableOpacity>
+ 
+            <TouchableOpacity style={styles.botonPromos} onPress={onVerDescuentos}>
+              <Text style={styles.textoBotonPromos}>Ver Promociones Activas</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        renderItem={({ item, index }) => (
+          <View style={styles.cardResultado}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.rutaTexto}>{item.ruta?.ciudadOrigen} ✈ {item.ruta?.ciudadDestino}</Text>
+              <Text style={styles.precioTexto}>${item.ruta?.precio}</Text>
+            </View>
+            <Text style={styles.vueloSubtexto}>Duración: {item.ruta?.duracion}</Text>
+            {item.vuelos?.map((v, i) => (
+              <View key={`vuelo-${index}-${i}`} style={styles.vueloDetalleItem}>
+                <Text style={styles.horaTexto}>⏱️ {formatHora(v.horaSalida ?? v.salida)}</Text>
+                <Text style={styles.detalleTexto}>💺 {v.asientosLibres} asientos libres</Text>
               </View>
             ))}
-            <Button title="Seleccionar" onPress={() => onSeleccionarVuelo(item)} />
+            {/* Agregamos de manera explícita la cantidad de pasajeros al objeto seleccionado */}
+            <TouchableOpacity 
+              style={styles.botonSeleccionar} 
+              onPress={() => onSeleccionarVuelo({ ...item, cantidadPasajeros: pasajeros })}
+            >
+              <Text style={styles.textoBotonSeleccionar}>Seleccionar Vuelo</Text>
+            </TouchableOpacity>
           </View>
         )}
+        ListEmptyComponent={
+          buscado && !cargando
+            ? <Text style={styles.sinResultados}>No se encontraron vuelos para esta búsqueda.</Text>
+            : null
+        }
       />
- 
-      <View style={{ height: 12 }} />
-      <Button title="Ver promociones" onPress={onVerDescuentos} color="#555" />
-      <View style={{ height: 12 }} />
-      <Button title="Volver" onPress={onVolver} color="#888" />
+
+      {cargando && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0066cc" />
+        </View>
+      )}
     </View>
   );
 }
 
+const dp = StyleSheet.create({
+  overlay:    { flex:1, backgroundColor:'rgba(0,0,0,0.45)', justifyContent:'center', alignItems:'center' },
+  modal:      { backgroundColor:'#fff', borderRadius:18, padding:20, width:320, elevation:12 },
+  header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 },
+  navBtn:     { padding:8 },
+  navTxt:     { fontSize:24, color:'#0066cc', fontWeight:'700' },
+  mesTxt:     { fontSize:17, fontWeight:'800', color:'#1E293B' },
+  fila:       { flexDirection:'row', justifyContent:'space-around', marginBottom:8 },
+  diaSemana:  { width:36, textAlign:'center', fontSize:12, fontWeight:'700', color:'#94A3B8' },
+  grilla:     { flexDirection:'row', flexWrap:'wrap' },
+  celda:      { width:'14.28%', aspectRatio:1, justifyContent:'center', alignItems:'center', borderRadius:50 },
+  celdaVacia: { opacity:0 },
+  celdaSel:   { backgroundColor:'#0066cc' },
+  celdaTxt:   { fontSize:14, color:'#334155', fontWeight:'600' },
+  celdaTxtSel:{ color:'#fff', fontWeight:'800' },
+  acciones:   { flexDirection:'row', justifyContent:'flex-end', gap:10, marginTop:16 },
+  btnCancelar:   { paddingVertical:10, paddingHorizontal:18, borderRadius:8, borderWidth:1, borderColor:'#CBD5E1' },
+  btnCancelarTxt:{ color:'#64748B', fontWeight:'700' },
+  btnConfirmar:   { paddingVertical:10, paddingHorizontal:18, borderRadius:8, backgroundColor:'#0066cc' },
+  btnConfirmarTxt:{ color:'#fff', fontWeight:'700' },
+});
+ 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: '#fff' 
-  },
-
-  titulo: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginTop: 30,
-    marginBottom: 10,
-    textAlign: 'center'
-  },
-
-  usuario: {
-    textAlign: 'center',
-    marginBottom: 10,
-    fontSize: 14,
-    color: '#555'
-  },
-
-  label: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    marginTop: 10
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10
-  },
-
-  picker: {
+  container:        { flex:1, backgroundColor:'#F1F5F9', paddingHorizontal:16 },
+  cardFormulario:   { backgroundColor:'#FFF', borderRadius:16, padding:20, marginTop:20, marginBottom:20, shadowColor:'#000', shadowOffset:{width:0,height:2}, shadowOpacity:0.05, shadowRadius:10, elevation:3 },
+  tituloHeader:     { fontSize:22, fontWeight:'800', color:'#1E293B', marginBottom:5 },
+  usuarioBadget:    { fontSize:14, color:'#0066cc', fontWeight:'600', marginBottom:15 },
+  label:            { fontSize:14, fontWeight:'700', color:'#475569', marginTop:12, marginBottom:8 },
+  inputFecha:       { borderWidth:1, borderColor:'#CBD5E1', borderRadius:10, padding:12, backgroundColor:'#F8FAFC', flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
+  fechaTxt:         { fontSize:15, color:'#1E293B' },
+  fechaPlaceholder: { fontSize:15, color:'#94A3B8' },
+  calIcon:          { fontSize:16 },
+  stepper:          { flexDirection:'row', alignItems:'center', gap:16, borderWidth:1, borderColor:'#CBD5E1', borderRadius:10, paddingHorizontal:16, paddingVertical:8, backgroundColor:'#F8FAFC', alignSelf:'flex-start' },
+  stepBtn:          { width:32, height:32, borderRadius:16, backgroundColor:'#0066cc', justifyContent:'center', alignItems:'center' },
+  stepTxt:          { color:'#fff', fontSize:20, fontWeight:'700', lineHeight:22 },
+  stepVal:          { fontSize:18, fontWeight:'800', color:'#1E293B', minWidth:24, textAlign:'center' },
+  picker:           { flexDirection:'row', flexWrap:'wrap', gap:8 },
+  opcion:           { borderWidth:1, borderColor:'#CBD5E1', borderRadius:20, paddingVertical:8, paddingHorizontal:14, backgroundColor:'#FFF' },
+  opcionSeleccionada:      { backgroundColor:'#0066cc', borderColor:'#0066cc' },
+  opcionTexto:             { color:'#64748B', fontWeight:'600', fontSize:13 },
+  opcionTextoSeleccionado: { color:'#FFF', fontWeight:'700' },
+  botonBuscar:      { backgroundColor:'#0066cc', paddingVertical:14, borderRadius:10, alignItems:'center', marginTop:20 },
+  textoBotonBuscar: { color:'#FFF', fontSize:16, fontWeight:'700' },
+  botonPromos:      { borderWidth:1, borderColor:'#0066cc', paddingVertical:12, borderRadius:10, alignItems:'center', marginTop:10 },
+  textoBotonPromos: { color:'#0066cc', fontSize:14, fontWeight:'700' },
+  cardResultado:    { backgroundColor:'#FFF', borderRadius:14, padding:16, marginBottom:14, borderLeftWidth:5, borderLeftColor:'#0066cc', elevation:2 },
+  cardHeader:       { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
+  rutaTexto:        { fontSize:17, fontWeight:'800', color:'#1E293B', flex:1, flexWrap:'wrap' },
+  precioTexto:      { fontSize:20, fontWeight:'900', color:'#10B981' },
+  vueloSubtexto:    { color:'#64748B', fontSize:13, marginBottom:10 },
+  vueloDetalleItem: { backgroundColor:'#F8FAFC', padding:10, borderRadius:8, marginTop:6 },
+  horaTexto:        { fontSize:13, fontWeight:'700', color:'#334155' },
+  detalleTexto:     { fontSize:12, color:'#64748B', marginTop:2 },
+  botonSeleccionar: { backgroundColor:'#1E293B', paddingVertical:10, borderRadius:8, alignItems:'center', marginTop:12 },
+  textoBotonSeleccionar: { color:'#FFF', fontWeight:'700' },
+  sinResultados:    { textAlign:'center', color:'#64748B', marginTop:20 },
+  loadingOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor:'rgba(255,255,255,0.7)', justifyContent:'center', alignItems:'center' },
+  headerControl: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 15,
   },
-
-  opcion: {
-    borderWidth: 1,
-    borderColor: '#aaa',
-    borderRadius: 20,
+  bienvenida: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  botonPerfilMini: {
+    backgroundColor: '#E2E8F0',
     paddingVertical: 6,
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    borderRadius: 20,
   },
-
-  opcionSeleccionada: {
-    backgroundColor: '#0066cc',
-    borderColor: '#0066cc'
-  },
-
-  opcionTexto: {
-    color: '#333'
-  },
-
-  opcionTextoSeleccionado: {
-    color: '#fff',
-    fontWeight: 'bold'
-  },
-
-  card: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15
-  },
-
-  destino: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    marginBottom: 5 
-  },
-
-  precio: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  textoBotonPerfil: {
     color: '#0066cc',
-    marginBottom: 8
-  },
-
-  vuelo: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8
-  },
-
-  tramo: {
-    fontWeight: 'bold',
-    marginBottom: 3
-  },
-
-  sinResultados: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 15,
-    color: '#777',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
