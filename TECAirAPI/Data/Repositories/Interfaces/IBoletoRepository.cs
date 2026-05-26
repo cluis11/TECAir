@@ -7,4 +7,5 @@ public interface IBoletoRepository
 {
     Task<ReservaResponseDTO> GetByReserva(int idReserva);
     Task<CheckinResponseDTO> UpdateCheckin(int idBoleto, int idAsiento);
+    Task<IEnumerable<string>> GetByPasaporteCheckin(string pasaporte);
 }

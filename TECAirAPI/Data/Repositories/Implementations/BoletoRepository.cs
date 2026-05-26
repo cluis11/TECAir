@@ -96,6 +96,20 @@ public class BoletoRepository : IBoletoRepository
         return null;
     }
 
+    public async Task<IEnumerable<string>> GetByPasaporteCheckin(string pasaporte)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            "SELECT id_boleto::text FROM boleto WHERE id_pasajero = @pasaporte AND ya_checkin = true", conn);
+        cmd.Parameters.AddWithValue("pasaporte", pasaporte);
+        using var reader = await cmd.ExecuteReaderAsync();
+        var boletos = new List<string>();
+        while (await reader.ReadAsync())
+            boletos.Add(reader.GetString(0));
+        return boletos;
+    }
+
     // -----------------------------------------------
     // Parte interna
     // -----------------------------------------------

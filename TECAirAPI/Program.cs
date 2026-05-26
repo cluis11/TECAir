@@ -12,7 +12,7 @@ builder.Services.AddScoped<IPruebaRepository, PruebaRepository>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
-// Aerpuerto
+// Aeropuerto
 builder.Services.AddScoped<IAeropuertoRepository, AeropuertoRepository>();
 builder.Services.AddScoped<IAeropuertoService, AeropuertoService>();
 
@@ -20,7 +20,7 @@ builder.Services.AddScoped<IAeropuertoService, AeropuertoService>();
 builder.Services.AddScoped<IPromocionRepository, PromocionRepository>();
 builder.Services.AddScoped<IPromocionService, PromocionService>();
 
-//Rutas y vuelos
+// Rutas y vuelos
 builder.Services.AddScoped<IRutaRepository, RutaRepository>();
 builder.Services.AddScoped<IRutaService, RutaService>();
 
@@ -36,6 +36,9 @@ builder.Services.AddScoped<IReservaService, ReservaService>();
 builder.Services.AddScoped<IBoletoRepository, BoletoRepository>();
 builder.Services.AddScoped<ICheckinService, CheckinService>();
 
+// Maletas
+builder.Services.AddScoped<IMaletaRepository, MaletaRepository>();
+builder.Services.AddScoped<IMaletaService, MaletaService>();
 
 builder.Services.AddCors(options =>
 {

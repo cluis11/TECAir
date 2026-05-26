@@ -22,22 +22,15 @@ public class ItinerarioRepository : IItinerarioRepository
 
     public async Task<IEnumerable<BusquedaResultadoDTO>> Buscar(int origen, int destino, DateOnly fecha, int pasajeros)
     {
-        // 1 - Obtener rutas entre origen y destino
         var rutas = await _rutaService.GetRutas(origen, destino);
         var resultados = new List<BusquedaResultadoDTO>();
-
-        // 2 - Obtener todos los aeropuertos para mapear los nombres
         var aeropuertos = (await _aeropuertoService.GetAll()).ToList();
         
         foreach (var ruta in rutas)
         {
-            // 3 - Obtener itinerarios abiertos de los vuelos de esta ruta en esa fecha
             var vuelosItinerario = await GetVuelosItinerario(ruta, fecha, aeropuertos);
+            if (!vuelosItinerario.Any()) continue;
 
-            // 4 - Si no hay itinerarios disponibles, saltar esta ruta
-            if (!vuelosItinerario.Any())    continue;
-
-            // 5 - Armar aeropuerto origen y destino de la ruta
             var aeropuertoOrigen = aeropuertos.FirstOrDefault(a => a.id_aeropuerto == ruta.id_origen);
             var aeropuertoDestino = aeropuertos.FirstOrDefault(a => a.id_aeropuerto == ruta.id_destino);
 
@@ -46,7 +39,6 @@ public class ItinerarioRepository : IItinerarioRepository
                 foreach (var vuelo in vuelosItinerario)
                 {
                     if (vuelo.AsientosLibres < pasajeros) continue;
-
                     resultados.Add(new BusquedaResultadoDTO
                     {
                         Ruta = new RutaResultadoDTO
@@ -63,7 +55,6 @@ public class ItinerarioRepository : IItinerarioRepository
             else
             {
                 if (vuelosItinerario.Any(v => v.AsientosLibres < pasajeros)) continue;
-
                 resultados.Add(new BusquedaResultadoDTO
                 {
                     Ruta = new RutaResultadoDTO
@@ -85,13 +76,10 @@ public class ItinerarioRepository : IItinerarioRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
-            "SELECT * FROM itinerario WHERE id_itinerario = @idItinerario ", conn);
+            "SELECT * FROM itinerario WHERE id_itinerario = @idItinerario", conn);
         cmd.Parameters.AddWithValue("idItinerario", idItinerario);
         using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            return MapItinerario(reader);
-        }
+        if (await reader.ReadAsync()) return MapItinerario(reader);
         return null;
     }
 
@@ -103,10 +91,7 @@ public class ItinerarioRepository : IItinerarioRepository
             "SELECT * FROM itinerario WHERE id_vuelo = @idVuelo AND estado = 'abierto'", conn);
         cmd.Parameters.AddWithValue("idVuelo", idVuelo);
         using var reader = await cmd.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            return MapItinerario(reader);
-        }
+        if (await reader.ReadAsync()) return MapItinerario(reader);
         return null;
     }
 
@@ -136,12 +121,11 @@ public class ItinerarioRepository : IItinerarioRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
-            "SELECT ai.id_asiento, a.fila, a.columna, ai.estado " + 
-            "FROM asiento_itinerario ai LEFT JOIN asiento a ON ai.id_asiento = a.id_asiento " + 
+            "SELECT ai.id_asiento, a.fila, a.columna, ai.estado " +
+            "FROM asiento_itinerario ai LEFT JOIN asiento a ON ai.id_asiento = a.id_asiento " +
             "WHERE ai.id_itinerario = @id", conn);
         cmd.Parameters.AddWithValue("id", id);
         using var reader = await cmd.ExecuteReaderAsync();
-
         var asientos = new List<AsientoDTO>();
         while (await reader.ReadAsync())
         {
@@ -159,14 +143,12 @@ public class ItinerarioRepository : IItinerarioRepository
             int idItinerario;
             string matricula;
 
-            // 1 - Crear el itinerario y obtener el id generado
             using (var conn = _db.GetConnection())
             {
                 await conn.OpenAsync();
                 idItinerario = await CreatePostItinerarioCommand(conn, vuelo);
             }
 
-            // 2 - Obtener la matrícula del avión asignado a ese vuelo
             using (var conn = _db.GetConnection())
             {
                 await conn.OpenAsync();
@@ -176,7 +158,6 @@ public class ItinerarioRepository : IItinerarioRepository
                 matricula = (string)await cmd.ExecuteScalarAsync();
             }
 
-            // 3 - Insertar todos los asientos de ese avión como libres en asiento_itinerario
             using (var conn = _db.GetConnection())
             {
                 await conn.OpenAsync();
@@ -185,18 +166,71 @@ public class ItinerarioRepository : IItinerarioRepository
 
             itinerariosCreados.Add(new Itinerario
             {
-                id_itinerario = idItinerario,
-                id_vuelo = vuelo.IdVuelo,
-                fecha = vuelo.Fecha,
-                salida = vuelo.Salida.ToTimeSpan(),
-                llegada = vuelo.Llegada.ToTimeSpan(),
+                id_itinerario   = idItinerario,
+                id_vuelo        = vuelo.IdVuelo,
+                fecha           = vuelo.Fecha,
+                salida          = vuelo.Salida.ToTimeSpan(),
+                llegada         = vuelo.Llegada.ToTimeSpan(),
                 puerta_embarque = vuelo.PuertaEmbarque,
-                estado = "abierto"
+                estado          = "abierto"
             });
         }
         return itinerariosCreados;
     }
 
+    public async Task<ResumenCierreDTO> GetResumenCierre(int idItinerario)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+
+        // Info del itinerario
+        using var cmdInfo = new NpgsqlCommand(
+            @"SELECT i.id_itinerario, ao.ciudad, ad.ciudad, i.fecha, i.salida
+              FROM itinerario i
+              JOIN vuelo v ON v.id_vuelo = i.id_vuelo
+              JOIN aeropuerto ao ON ao.id_aeropuerto = v.id_origen
+              JOIN aeropuerto ad ON ad.id_aeropuerto = v.id_destino
+              WHERE i.id_itinerario = @id", conn);
+        cmdInfo.Parameters.AddWithValue("id", idItinerario);
+        using var readerInfo = await cmdInfo.ExecuteReaderAsync();
+        if (!await readerInfo.ReadAsync()) return null;
+
+        var resumen = new ResumenCierreDTO
+        {
+            IdItinerario  = readerInfo.GetInt32(0),
+            CiudadOrigen  = readerInfo.GetString(1),
+            CiudadDestino = readerInfo.GetString(2),
+            Fecha         = readerInfo.GetDateTime(3).ToString("yyyy-MM-dd"),
+            Salida        = readerInfo.GetTimeSpan(4).ToString(@"hh\:mm")
+        };
+        await readerInfo.CloseAsync();
+
+        // Pasajeros chequeados con cantidad de maletas
+        using var cmdPax = new NpgsqlCommand(
+            @"SELECT p.pasaporte, p.nombre || ' ' || p.ap1,
+                     COUNT(m.id_maleta) AS cant_maletas
+              FROM boleto b
+              JOIN pasajero p ON p.pasaporte = b.id_pasajero
+              LEFT JOIN maleta m ON m.pasaporte = p.pasaporte
+              WHERE b.id_itinerario = @id AND b.ya_checkin = true
+              GROUP BY p.pasaporte, p.nombre, p.ap1", conn);
+        cmdPax.Parameters.AddWithValue("id", idItinerario);
+        using var readerPax = await cmdPax.ExecuteReaderAsync();
+
+        while (await readerPax.ReadAsync())
+        {
+            resumen.Pasajeros.Add(new PasajeroResumenDTO
+            {
+                Pasaporte       = readerPax.GetString(0),
+                Nombre          = readerPax.GetString(1),
+                CantidadMaletas = (int)readerPax.GetInt64(2)
+            });
+        }
+
+        resumen.TotalPasajeros = resumen.Pasajeros.Count;
+        resumen.TotalMaletas   = resumen.Pasajeros.Sum(p => p.CantidadMaletas);
+        return resumen;
+    }
 
     //----------------------------------------------
     // Parte Interna
@@ -216,11 +250,10 @@ public class ItinerarioRepository : IItinerarioRepository
                 "FROM itinerario i LEFT JOIN asiento_itinerario ai ON ai.id_itinerario = i.id_itinerario " +
                 "WHERE i.id_vuelo = @idVuelo AND i.fecha = @fecha AND i.estado = 'abierto' " +
                 "GROUP BY i.id_itinerario", conn);
-                cmd.Parameters.AddWithValue("idVuelo", vuelo.id_vuelo);
-                cmd.Parameters.AddWithValue("fecha", fecha);
+            cmd.Parameters.AddWithValue("idVuelo", vuelo.id_vuelo);
+            cmd.Parameters.AddWithValue("fecha", fecha);
 
             using var reader = await cmd.ExecuteReaderAsync();
-
             var aeropuertoOrigen = aeropuertos.FirstOrDefault(a => a.id_aeropuerto == vuelo.id_origen);
             var aeropuertoDestino = aeropuertos.FirstOrDefault(a => a.id_aeropuerto == vuelo.id_destino);
 
@@ -230,18 +263,17 @@ public class ItinerarioRepository : IItinerarioRepository
                 tieneItinerario = true;
                 resultado.Add(new VueloItinerarioDTO
                 {
-                    idItinerario = reader.GetInt32(0),
-                    idVuelo = reader.GetInt32(1),
-                    Fecha = DateOnly.FromDateTime(reader.GetDateTime(2)),
-                    Salida = reader.GetTimeSpan(3),
-                    Llegada = reader.GetTimeSpan(4),
+                    idItinerario   = reader.GetInt32(0),
+                    idVuelo        = reader.GetInt32(1),
+                    Fecha          = DateOnly.FromDateTime(reader.GetDateTime(2)),
+                    Salida         = reader.GetTimeSpan(3),
+                    Llegada        = reader.GetTimeSpan(4),
                     PuertaEmbarque = reader.GetString(5),
-                    CiudadOrigen = aeropuertoOrigen?.Ciudad ?? "",
-                    CiudadDestino = aeropuertoDestino?.Ciudad ?? "",
+                    CiudadOrigen   = aeropuertoOrigen?.Ciudad ?? "",
+                    CiudadDestino  = aeropuertoDestino?.Ciudad ?? "",
                     AsientosLibres = reader.GetInt32(7),
                 });
             }
-            
             if (!tieneItinerario) return new List<VueloItinerarioDTO>();
         }
         return resultado;
@@ -251,13 +283,13 @@ public class ItinerarioRepository : IItinerarioRepository
     {
         return new Itinerario
         {
-            id_itinerario = reader.GetInt32(0),
-            id_vuelo = reader.GetInt32(1),
-            fecha = DateOnly.FromDateTime(reader.GetDateTime(2)),
-            salida = reader.GetTimeSpan(3),
-            llegada = reader.GetTimeSpan(4),
+            id_itinerario   = reader.GetInt32(0),
+            id_vuelo        = reader.GetInt32(1),
+            fecha           = DateOnly.FromDateTime(reader.GetDateTime(2)),
+            salida          = reader.GetTimeSpan(3),
+            llegada         = reader.GetTimeSpan(4),
             puerta_embarque = reader.GetString(5),
-            estado = reader.GetString(6)
+            estado          = reader.GetString(6)
         };
     }
 
@@ -266,9 +298,9 @@ public class ItinerarioRepository : IItinerarioRepository
         return new AsientoDTO
         {
             id_asiento = reader.GetInt32(0),
-            fila = reader.GetString(1),
-            columna = reader.GetString(2),
-            estado = reader.GetString(3),
+            fila       = reader.GetString(1),
+            columna    = reader.GetString(2),
+            estado     = reader.GetString(3),
         };
     }
 
@@ -276,7 +308,7 @@ public class ItinerarioRepository : IItinerarioRepository
     {
         var cmd = new NpgsqlCommand(
             "INSERT INTO itinerario (id_vuelo, fecha, salida, llegada, puerta_embarque, estado) " +
-            "VALUES (@idVuelo, @fecha, @salida, @llegada, @puerta, 'abierto') " + 
+            "VALUES (@idVuelo, @fecha, @salida, @llegada, @puerta, 'abierto') " +
             "RETURNING id_itinerario", conn);
         cmd.Parameters.AddWithValue("idVuelo", vuelo.IdVuelo);
         cmd.Parameters.AddWithValue("fecha", vuelo.Fecha);
