@@ -56,7 +56,13 @@ const SeleccionEquipaje = () => {
       const pasajerosInit = data.map(p => ({
         pasaporte: p.pasaporte,
         nombreCompleto: `${p.nombre} ${p.ap1}`,
-        maletas: p.maletas || []
+        maletas: (p.maletas || []).map(m => ({
+          id: m.idMaleta,
+          idMaleta: m.idMaleta,
+          peso: m.peso,
+          color: m.color,
+          guardada: true
+        }))
       }));
       setPasajeros(pasajerosInit);
       setReservaCargada(true);
@@ -363,7 +369,7 @@ const SeleccionEquipaje = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => navigate('/admin')}
+                    onClick={() => { window.location.href = '/admin'; }}
                     className="btn btn-primary flex-grow-1 py-2 fw-bold d-flex align-items-center justify-content-center gap-2 rounded-3"
                   >
                     <span>Finalizar</span>
