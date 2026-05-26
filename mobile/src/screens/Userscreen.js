@@ -1,188 +1,104 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  Alert,
-  StyleSheet,
-  ScrollView,
-  Switch,
-} from 'react-native';
+import { View, Text, TextInput, Button, Switch, Alert, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { getDBConnection, createTables, guardarUsuarioLocal } from '../database/db';
+import * as api from '../database/api';
+
 
 export default function RegistroUsuarioScreen({ onVolver }) {
   const [nombre, setNombre] = useState('');
-  const [apellido1, setApellido1] = useState('');
-  const [apellido2, setApellido2] = useState('');
+  const [ap1, setAp1] = useState('');
+  const [ap2, setAp2] = useState('');
   const [correo, setCorreo] = useState('');
-  const [telefono1, setTelefono1] = useState('');
-  const [telefono2, setTelefono2] = useState('');
-  const [password, setPassword] = useState('');
-
+  const [telefono, setTelefono] = useState('');
+  const [contrasena, setContrasena] = useState('');
   const [esEstudiante, setEsEstudiante] = useState(false);
   const [universidad, setUniversidad] = useState('');
   const [carnet, setCarnet] = useState('');
+  const [cargando, setCargando] = useState(false);
 
-  const guardarUsuario = () => {
-    if (
-      !nombre ||
-      !apellido1 ||
-      !apellido2 ||
-      !correo ||
-      !telefono1 ||
-      !password
-    ) {
-      Alert.alert(
-        'Error',
-        'Debe completar todos los campos obligatorios.'
-      );
+  const guardarUsuario = async () => {
+    if (!nombre || !ap1 || !correo || !telefono || !contrasena) {
+      Alert.alert('Error', 'Debe completar todos los campos obligatorios.');
       return;
     }
 
     if (esEstudiante && (!universidad || !carnet)) {
-      Alert.alert(
-        'Error',
-        'Debe completar universidad y carnet.'
-      );
+      Alert.alert('Error', 'Debe completar universidad y carnet.');
       return;
     }
 
-    const usuario = {
-      nombre,
-      apellido1,
-      apellido2,
-      correo,
-      telefono1,
-      telefono2,
-      password,
-      esEstudiante,
-      universidad: esEstudiante ? universidad : null,
-      carnet: esEstudiante ? carnet : null,
-    };
-
-    console.log('Usuario registrado:', usuario);
-
-    Alert.alert(
-      'Éxito',
-      'Usuario registrado correctamente.'
-    );
-
-    setNombre('');
-    setApellido1('');
-    setApellido2('');
-    setCorreo('');
-    setTelefono1('');
-    setTelefono2('');
-    setPassword('');
-    setEsEstudiante(false);
-    setUniversidad('');
-    setCarnet('');
+    setCargando(true);
+    try {
+      const datos = {
+        correo, contrasena, nombre, ap1,
+        ap2: ap2 || null,
+        telefono,
+        esEstudiante,
+        estudiante: esEstudiante ? { carnet, universidad } : null,
+      };
+ 
+      // 1 - Registrar en la API
+      const usuario = await api.registrarUsuario(datos);
+ 
+      // 2 - Guardar localmente en SQLite para uso offline
+      const db = await getDBConnection();
+      await createTables(db);
+      await guardarUsuarioLocal(db, { ...usuario, contrasena });
+ 
+      Alert.alert('Éxito', 'Usuario registrado correctamente.', [
+        { text: 'OK', onPress: onVolver }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo registrar el usuario. Verifique los datos.');
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Crear Cuenta</Text>
-
-      <Text style={styles.label}>Nombre</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el nombre"
-        value={nombre}
-        onChangeText={setNombre}
-      />
-
-      <Text style={styles.label}>Apellido 1</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el primer apellido"
-        value={apellido1}
-        onChangeText={setApellido1}
-      />
-
-      <Text style={styles.label}>Apellido 2</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el segundo apellido"
-        value={apellido2}
-        onChangeText={setApellido2}
-      />
-
-      <Text style={styles.label}>Correo electrónico</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el correo"
-        value={correo}
-        onChangeText={setCorreo}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <Text style={styles.label}>Teléfono 1</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el teléfono principal"
-        value={telefono1}
-        onChangeText={setTelefono1}
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.label}>Teléfono 2 (Opcional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese el segundo teléfono"
-        value={telefono2}
-        onChangeText={setTelefono2}
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.label}>Contraseña</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese la contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
+ 
+      <Text style={styles.label}>Nombre *</Text>
+      <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+ 
+      <Text style={styles.label}>Primer apellido *</Text>
+      <TextInput style={styles.input} placeholder="Primer apellido" value={ap1} onChangeText={setAp1} />
+ 
+      <Text style={styles.label}>Segundo apellido</Text>
+      <TextInput style={styles.input} placeholder="Segundo apellido (opcional)" value={ap2} onChangeText={setAp2} />
+ 
+      <Text style={styles.label}>Correo electrónico *</Text>
+      <TextInput style={styles.input} placeholder="Correo" value={correo} onChangeText={setCorreo} keyboardType="email-address" autoCapitalize="none" />
+ 
+      <Text style={styles.label}>Teléfono *</Text>
+      <TextInput style={styles.input} placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
+ 
+      <Text style={styles.label}>Contraseña *</Text>
+      <TextInput style={styles.input} placeholder="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry />
+ 
       <View style={styles.switchContainer}>
         <Text style={styles.label}>¿Es estudiante?</Text>
-        <Switch
-          value={esEstudiante}
-          onValueChange={setEsEstudiante}
-        />
+        <Switch value={esEstudiante} onValueChange={setEsEstudiante} />
       </View>
-
+ 
       {esEstudiante && (
         <>
-          <Text style={styles.label}>Universidad</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingrese la universidad"
-            value={universidad}
-            onChangeText={setUniversidad}
-          />
-
-          <Text style={styles.label}>Carnet</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingrese el carnet"
-            value={carnet}
-            onChangeText={setCarnet}
-          />
+          <Text style={styles.label}>Universidad *</Text>
+          <TextInput style={styles.input} placeholder="Universidad" value={universidad} onChangeText={setUniversidad} />
+          <Text style={styles.label}>Carnet *</Text>
+          <TextInput style={styles.input} placeholder="Carnet" value={carnet} onChangeText={setCarnet} />
         </>
       )}
-
-      <Button
-        title="Registrar usuario"
-        onPress={guardarUsuario}
-      />
-
-      <View style={styles.separador} />
-
-      <Button
-        title="Volver al inicio"
-        onPress={onVolver}
-      />
+ 
+      {cargando ? (
+        <ActivityIndicator size="large" color="#0066cc" />
+      ) : (
+        <Button title="Registrar usuario" onPress={guardarUsuario} />
+      )}
+ 
+      <View style={{ height: 12 }} />
+      <Button title="Volver" onPress={onVolver} color="#888" />
     </ScrollView>
   );
 }
@@ -195,7 +111,7 @@ const styles = StyleSheet.create({
   },
 
   titulo: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 25,
     marginTop: 30,
@@ -203,9 +119,9 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 6,
     marginTop: 10,
   },
 
@@ -222,9 +138,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-
-  separador: {
-    height: 12,
   },
 });

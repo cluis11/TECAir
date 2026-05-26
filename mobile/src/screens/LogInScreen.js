@@ -1,18 +1,41 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { login, loginlocal } from '../database/db';
+import { getDBConnection } from '../database/db';
+import * as api from '../database/api';
 
-export default function LoginScreen({ onRegister, onVolver, onLogin, usuario }) {
+
+
+export default function LoginScreen({ onRegister, onLogin }) {
   const [correo, setCorreo] = useState('');
-  const [password, setPassword] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [cargando, setCargando] = useState(false);
 
-  const iniciarSesion = () => {
-    if (
-      correo === usuario.correo &&
-      password === usuario.password
-    ) {
+  const iniciarSesion = async () => {
+    if (!correo || !contrasena) {
+      Alert.alert('Error', 'Debe ingresar correo y contraseña.');
+      return;
+    }
+    setCargando(true);
+    try {
+      // 1 - Intenar login con la API
+      const usuario = await api.login(correo, contrasena);
       onLogin(usuario);
-    } else {
-      Alert.alert('Error', 'Correo o contraseña incorrectos.');
+    } catch (error) {
+      // 2 - Si falla la API, intenar login local (SQLite)
+      try {
+        const db = await getDBConnection();
+        const usuarioLocal = await loginlocal(db, correo, contrasena);
+        if (usuarioLocal) {
+          onLogin(usuarioLocal);
+        } else {
+          Alert.alert('Error', 'Correo o contraseña incorrectos.');
+        }
+      } catch (err) {
+        Alert.alert('Error', 'No se pudo iniciar sesión. Intente nuevamente.');
+      }
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -20,37 +43,33 @@ export default function LoginScreen({ onRegister, onVolver, onLogin, usuario }) 
     <View style={styles.container}>
       <Text style={styles.titulo}>TECAir</Text>
       <Text style={styles.subtitulo}>Inicio de sesión</Text>
-
-      <Text style={styles.label}>Correo electrónico</Text>
-
+ 
       <TextInput
         style={styles.input}
-        placeholder="Ingrese su correo"
+        placeholder="Correo electrónico"
         value={correo}
         onChangeText={setCorreo}
         keyboardType="email-address"
         autoCapitalize="none"
       />
-
-      <Text style={styles.label}>Contraseña</Text>
-
+ 
       <TextInput
         style={styles.input}
-        placeholder="Ingrese su contraseña"
-        value={password}
-        onChangeText={setPassword}
+        placeholder="Contraseña"
+        value={contrasena}
+        onChangeText={setContrasena}
         secureTextEntry
       />
-
-      <Button title="Iniciar sesión" onPress={iniciarSesion} />
-
-      <View style={styles.separador} />
-
-      <Button title="Crear cuenta" onPress={onRegister} />
-
-      <View style={styles.separador} />
-
-      <Button title="Volver al inicio" onPress={onVolver} />
+ 
+      {cargando ? (
+        <ActivityIndicator size="large" color="#0066cc" />
+      ) : (
+        <Button title="Iniciar sesión" onPress={iniciarSesion} />
+      )}
+ 
+      <TouchableOpacity onPress={onRegister}>
+        <Text style={styles.link}>Crear una cuenta nueva</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -80,13 +99,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
-  separador: {
-    height: 12,
-  },
-  label: {
-    fontSize: 16,
+  link: {
+    textAlign: 'center',
+    color: '#0066cc',
     fontWeight: 'bold',
-    marginBottom: 5,
-    marginTop: 5,
+    marginTop: 20,
   },
 });

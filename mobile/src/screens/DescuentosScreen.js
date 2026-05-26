@@ -1,115 +1,58 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  Button,
-  StyleSheet,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import * as api from '../database/api';
 
 export default function DescuentosScreen({ onVolver, onSeleccionarVuelo }) {
-  const vuelos = [
-    {
-      id: '1',
-      origen: 'San José',
-      destino: 'México',
-      fecha: '25/05/2026',
-      hora: '08:30 AM',
-      precio: 320,
-      descuento: 15,
-    },
-    {
-      id: '2',
-      origen: 'San José',
-      destino: 'España',
-      fecha: '27/05/2026',
-      hora: '02:15 PM',
-      precio: 890,
-      descuento: 0,
-    },
-    {
-      id: '3',
-      origen: 'Liberia',
-      destino: 'Estados Unidos',
-      fecha: '30/05/2026',
-      hora: '09:45 PM',
-      precio: 450,
-      descuento: 20,
-    },
-    {
-      id: '4',
-      origen: 'San José',
-      destino: 'Colombia',
-      fecha: '02/06/2026',
-      hora: '11:00 AM',
-      precio: 280,
-      descuento: 10,
-    },
-    {
-      id: '5',
-      origen: 'San José',
-      destino: 'Panamá',
-      fecha: '04/06/2026',
-      hora: '06:45 AM',
-      precio: 180,
-      descuento: 0,
-    },
-    {
-      id: '6',
-      origen: 'Liberia',
-      destino: 'Canadá',
-      fecha: '07/06/2026',
-      hora: '04:20 PM',
-      precio: 620,
-      descuento: 25,
-    },
-  ];
+  const [promociones, setPromociones] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
-  const vuelosConDescuento = vuelos.filter((vuelo) => vuelo.descuento > 0);
+  useEffect(() => {
+    api.getPromociones()
+      .then(setPromociones)
+      .catch(() => Alert.alert('Error', 'No se pudieron cargar las promociones.'))
+      .finally(() => setCargando(false));
+  }, []);
 
-  const calcularPrecioFinal = (precio, descuento) => {
-    return precio - precio * (descuento / 100);
+  const formatFecha = (fechaStr) => {
+    if (!fechaStr) return '';
+    return fechaStr.split('T')[0];
   };
+
+  if (cargando) {
+    return (
+      <View style={styles.centrado}>
+        <ActivityIndicator size="large" color="#0066cc" />
+        <Text>Cargando promociones...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Vuelos con Descuento</Text>
-
-      <FlatList
-        data={vuelosConDescuento}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const precioFinal = calcularPrecioFinal(item.precio, item.descuento);
-
-          return (
+      <Text style={styles.titulo}>Promociones Activas</Text>
+ 
+      {promociones.length === 0 ? (
+        <Text style={styles.sinResultados}>No hay promociones activas en este momento.</Text>
+      ) : (
+        <FlatList
+          data={promociones}
+          keyExtractor={(item) => String(item.idPromo)}
+          renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.destino}>
-                {item.origen} → {item.destino}
-              </Text>
-
-              <Text>Fecha: {item.fecha}</Text>
-              <Text>Hora: {item.hora}</Text>
-              <Text>Precio original: ${item.precio}</Text>
-              <Text>Descuento: {item.descuento}%</Text>
-              <Text style={styles.precioFinal}>
-                Precio final: ${precioFinal.toFixed(2)}
-              </Text>
-
+              <Text style={styles.destino}>{item.ciudadOrigen} → {item.ciudadDestino}</Text>
+              <Text>Descuento: {item.porcentaje}%</Text>
+              <Text>Precio desde: ${item.precioPromocion}</Text>
+              <Text style={styles.fecha}>{formatFecha(item.inicio)} — {formatFecha(item.fin)}</Text>
               <Button
-                title="Seleccionar vuelo"
-                onPress={() =>
-                  onSeleccionarVuelo({
-                    ...item,
-                    precio: precioFinal,
-                  })
-                }
+                title="Ver vuelos de esta ruta"
+                onPress={() => onSeleccionarVuelo(item)}
               />
             </View>
-          );
-        }}
-      />
-
-      <Button title="Volver a vuelos" onPress={onVolver} />
+          )}
+        />
+      )}
+ 
+      <Button title="Volver" onPress={onVolver} color="#888" />
     </View>
   );
 }
@@ -118,30 +61,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff'
   },
+
+  centrado: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
   titulo: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     marginTop: 30,
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: 'center'
   },
+
   card: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 10,
     padding: 15,
-    marginBottom: 15,
+    marginBottom: 15
   },
+  
   destino: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 8
   },
-  precioFinal: {
-    marginTop: 8,
-    fontSize: 16,
-    fontWeight: 'bold',
+
+  fecha: {
+    color: '#777',
+    marginTop: 5,
+    marginBottom: 10
+  },
+
+  sinResultados: {
+    textAlign: 'center',
+    marginTop: 30,
+    fontSize: 15,
+    color: '#777'
   },
 });
