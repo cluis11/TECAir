@@ -4,14 +4,13 @@ import "../App.css";
 
 import CheckIn from "./check-in";
 import AdminVuelos from "./admin-flight";
+import AdminRutas from "./admin-rutas";
 import Promo from "./admin-promo";
 import Clientes from "./admin-clientes";
-import AdminRutas from './admin-rutas';
+import Maletas from "./maletas";
 
 const Admin = () => {
-  // Estado para controlar qué sección se muestra
   const [vistaActiva, setVistaActiva] = useState('dashboard');
-
   const navigate = useNavigate();
   
   const cerrarSesion = () => {
@@ -55,6 +54,7 @@ const Admin = () => {
           >
             <span>Promociones</span>
           </div>
+
           <div 
             className={`nav-item ${vistaActiva === 'clientes' ? 'active' : ''}`} 
             onClick={() => setVistaActiva('clientes')}
@@ -68,6 +68,13 @@ const Admin = () => {
           >
             <span>Check-in</span>
           </div>
+
+          <div 
+            className={`nav-item ${vistaActiva === 'maletas' ? 'active' : ''}`} 
+            onClick={() => setVistaActiva('maletas')}
+          >
+            <span>Maletas</span>
+          </div>
         </nav>
 
         <div className="nav-item logout" onClick={cerrarSesion}>
@@ -75,10 +82,8 @@ const Admin = () => {
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="main-content">
         
-        {/* Vista Dashboard */}
         {vistaActiva === 'dashboard' && (
           <>
             <header className="header-title">
@@ -111,7 +116,11 @@ const Admin = () => {
                 <h3>Clientes</h3>
                 <p>Gestiona los clientes registrados.</p>
               </div>
-              
+
+              <div className="card" onClick={() => setVistaActiva('maletas')}>
+                <h3>Asignación de Maletas</h3>
+                <p>Asigna maletas a pasajeros chequeados.</p>
+              </div>
             </div>
           </>
         )}
@@ -121,6 +130,7 @@ const Admin = () => {
         {vistaActiva === 'promo' && <Promo />}
         {vistaActiva === 'clientes' && <Clientes />}
         {vistaActiva === 'checkin' && <CheckIn />}
+        {vistaActiva === 'maletas' && <Maletas />}
         
       </main>
     </div>

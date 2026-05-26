@@ -8,4 +8,6 @@ public interface IReservaService
     Task<Reserva> CrearReserva(CrearReservaDTO reserva);
     Task<Reserva> ObtenerReserva(int id);
     Task<IEnumerable<Reserva>> ObtenerPorUsuario(int idUsuario);
+    Task<bool> PagarReserva(int idReserva);
+    Task<bool> CancelarReserva(int idReserva);
 }

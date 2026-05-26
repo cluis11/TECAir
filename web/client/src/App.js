@@ -4,6 +4,8 @@ import { AuthProvider } from './pages/AuthContext';
 import Cliente from './pages/Cliente';
 import Promo from './pages/promo';
 import Vuelos from './pages/vista-vuelos';
+import Detalle from './pages/itenario-detalle';
+import Pago from './pages/itenario-pago';
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
           <Route path="/" element={<Cliente />} />
           <Route path="/promos" element={<Promo />} />
           <Route path="/vuelos" element={<Vuelos />} />
+          <Route path="/reservar" element={<Detalle />} />
+          <Route path="/pagar" element={<Pago />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
