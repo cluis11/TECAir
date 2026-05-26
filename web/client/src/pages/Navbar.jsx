@@ -152,12 +152,21 @@ const Navbar = ({ paginaActiva }) => {
                 </ul>
 
                 {!usuario ? (
+                <div className="d-flex gap-2">
+                    <button
+                        className="btn btn-outline-light fw-bold px-4 rounded-pill"
+                        onClick={() => navigate('/registro')}
+                    >
+                        Registrarse
+                    </button>
+
                     <button
                         className="btn btn-light text-primary fw-bold px-4 rounded-pill shadow-sm"
                         onClick={() => setMostrarLogin(true)}
                     >
                         Iniciar Sesión
                     </button>
+                </div>
                 ) : (
                     <div className="d-flex align-items-center gap-3">
                         <div className="d-none d-md-flex flex-column align-items-end">

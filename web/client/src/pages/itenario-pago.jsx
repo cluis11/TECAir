@@ -73,11 +73,14 @@ const ItinerarioPago = () => {
         const hoy = new Date();
         const anoCompleto = 2000 + ano;
         const vencimiento = new Date(anoCompleto, mes, 1); 
+        if (mes < 1 || mes > 12) {
+            alert('Mes de vencimiento inválido.'); return false;
+        }
         if (vencimiento <= hoy) {
             alert('La tarjeta está vencida.'); return false;
         }
 
-        if (tarjeta.cvv.length < 3) {
+        if (tarjeta.cvv.length < 3 ) {
             alert('CVV inválido.'); return false;
         }
         return true;
