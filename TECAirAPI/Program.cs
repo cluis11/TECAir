@@ -36,6 +36,9 @@ builder.Services.AddScoped<IReservaService, ReservaService>();
 builder.Services.AddScoped<IBoletoRepository, BoletoRepository>();
 builder.Services.AddScoped<ICheckinService, CheckinService>();
 
+// PDF
+builder.Services.AddScoped<IPdfService, PdfService>();
+
 // Maletas
 builder.Services.AddScoped<IMaletaRepository, MaletaRepository>();
 builder.Services.AddScoped<IMaletaService, MaletaService>();

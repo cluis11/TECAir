@@ -24,6 +24,9 @@ public class CheckinService : ICheckinService
         return await _boletoRepo.UpdateCheckin(idBoleto, idAsiento);
     }
 
+    public async Task<PaseAbordarDTO?> ObtenerPaseAbordar(int idBoleto)
+    {
+        return await _boletoRepo.GetPaseAbordar(idBoleto);
     public async Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario)
     {
         return await _boletoRepo.GetPasajerosPorItinerario(idItinerario);
