@@ -21,7 +21,7 @@ public class MaletaRepository : IMaletaRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
-            "SELECT id_maleta, pasaporte, color, peso FROM maleta WHERE pasaporte = @pasaporte", conn);
+            "SELECT id_maleta, pasaporte, id_boleto, color, peso FROM maleta WHERE pasaporte = @pasaporte", conn);
         cmd.Parameters.AddWithValue("pasaporte", pasaporte);
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -38,9 +38,8 @@ public class MaletaRepository : IMaletaRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
 
-        // Obtener pasajeros con boletos chequeados e itinerario abierto
         using var cmd = new NpgsqlCommand(
-            @"SELECT DISTINCT p.pasaporte, p.nombre, p.ap1, b.id_itinerario
+            @"SELECT DISTINCT p.pasaporte, p.nombre, p.ap1, b.id_itinerario, b.id_boleto
               FROM boleto b
               JOIN pasajero p ON p.pasaporte = b.id_pasajero
               JOIN itinerario i ON i.id_itinerario = b.id_itinerario
@@ -54,21 +53,22 @@ public class MaletaRepository : IMaletaRepository
         {
             pasajeros.Add(new PasajeroMaletaDTO
             {
-                Pasaporte     = reader.GetString(0),
-                Nombre        = reader.GetString(1),
-                Ap1           = reader.GetString(2),
-                IdItinerario  = reader.GetInt32(3),
-                Maletas       = new List<MaletaDTO>()
+                Pasaporte    = reader.GetString(0),
+                Nombre       = reader.GetString(1),
+                Ap1          = reader.GetString(2),
+                IdItinerario = reader.GetInt32(3),
+                IdBoleto     = reader.GetInt32(4),
+                Maletas      = new List<MaletaDTO>()
             });
         }
         await reader.CloseAsync();
 
-        // Para cada pasajero cargar sus maletas
+        // Cargar maletas por boleto
         foreach (var pasajero in pasajeros)
         {
             using var cmdMaletas = new NpgsqlCommand(
-                "SELECT id_maleta, color, peso FROM maleta WHERE pasaporte = @pasaporte", conn);
-            cmdMaletas.Parameters.AddWithValue("pasaporte", pasajero.Pasaporte);
+                "SELECT id_maleta, color, peso FROM maleta WHERE id_boleto = @idBoleto", conn);
+            cmdMaletas.Parameters.AddWithValue("idBoleto", pasajero.IdBoleto);
             using var readerMaletas = await cmdMaletas.ExecuteReaderAsync();
             while (await readerMaletas.ReadAsync())
             {
@@ -89,9 +89,10 @@ public class MaletaRepository : IMaletaRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
         using var cmd = new NpgsqlCommand(
-            "INSERT INTO maleta (pasaporte, color, peso) " +
-            "VALUES (@pasaporte, @color, @peso) RETURNING id_maleta, pasaporte, color, peso", conn);
+            "INSERT INTO maleta (pasaporte, id_boleto, color, peso) " +
+            "VALUES (@pasaporte, @idBoleto, @color, @peso) RETURNING id_maleta, pasaporte, id_boleto, color, peso", conn);
         cmd.Parameters.AddWithValue("pasaporte", maleta.Pasaporte);
+        cmd.Parameters.AddWithValue("idBoleto", maleta.IdBoleto);
         cmd.Parameters.AddWithValue("color", maleta.Color);
         cmd.Parameters.AddWithValue("peso", maleta.Peso);
         using var reader = await cmd.ExecuteReaderAsync();
@@ -119,8 +120,9 @@ public class MaletaRepository : IMaletaRepository
         {
             IdMaleta  = reader.GetInt32(0),
             Pasaporte = reader.GetString(1),
-            Color     = reader.GetString(2),
-            Peso      = reader.GetDouble(3)
+            IdBoleto  = reader.GetInt32(2),
+            Color     = reader.GetString(3),
+            Peso      = reader.GetDouble(4)
         };
     }
 }

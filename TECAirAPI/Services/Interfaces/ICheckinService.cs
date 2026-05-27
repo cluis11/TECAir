@@ -7,4 +7,5 @@ public interface ICheckinService
 {
     Task<ReservaResponseDTO> ObtenerReserva(int idReserva);
     Task<CheckinResponseDTO> HacerCheckin(int idBoleto, int idAsiento);
+    Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario);
 }

@@ -28,11 +28,17 @@ const SeleccionEquipaje = () => {
   // Si viene desde pase, cargar pasajeros directamente
   useEffect(() => {
     if (modoDesdePane && reserva?.pasajeros) {
-      const pasajerosInit = reserva.pasajeros.map(p => ({
-        pasaporte: p.pasaporte,
-        nombreCompleto: p.nombreCompleto,
-        maletas: []
-      }));
+      const tramos = [...(reserva.pasajeros[0]?.boletos || [])].sort((a, b) => a.salida > b.salida ? 1 : -1);
+      const tramoActual = tramos[tramoIndex || 0];
+      const pasajerosInit = reserva.pasajeros.map(p => {
+        const boleto = p.boletos?.find(b => b.idItinerario === tramoActual?.idItinerario);
+        return {
+          pasaporte: p.pasaporte,
+          nombreCompleto: p.nombreCompleto,
+          idBoleto: boleto?.idBoleto || null,
+          maletas: []
+        };
+      });
       setPasajeros(pasajerosInit);
       setReservaCargada(true);
     }
@@ -56,6 +62,7 @@ const SeleccionEquipaje = () => {
       const pasajerosInit = data.map(p => ({
         pasaporte: p.pasaporte,
         nombreCompleto: `${p.nombre} ${p.ap1}`,
+        idBoleto: p.idBoleto,
         maletas: (p.maletas || []).map(m => ({
           id: m.idMaleta,
           idMaleta: m.idMaleta,
@@ -113,6 +120,7 @@ const SeleccionEquipaje = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pasaporte: pasajero.pasaporte,
+          idBoleto: pasajero.idBoleto,
           color: maleta.color,
           peso: parseFloat(maleta.peso)
         })

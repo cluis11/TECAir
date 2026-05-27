@@ -23,4 +23,9 @@ public class CheckinService : ICheckinService
     {
         return await _boletoRepo.UpdateCheckin(idBoleto, idAsiento);
     }
+
+    public async Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario)
+    {
+        return await _boletoRepo.GetPasajerosPorItinerario(idItinerario);
+    }
 }

@@ -205,13 +205,13 @@ public class ItinerarioRepository : IItinerarioRepository
         };
         await readerInfo.CloseAsync();
 
-        // Pasajeros chequeados con cantidad de maletas
+        // Pasajeros chequeados con cantidad de maletas por boleto
         using var cmdPax = new NpgsqlCommand(
             @"SELECT p.pasaporte, p.nombre || ' ' || p.ap1,
                      COUNT(m.id_maleta) AS cant_maletas
               FROM boleto b
               JOIN pasajero p ON p.pasaporte = b.id_pasajero
-              LEFT JOIN maleta m ON m.pasaporte = p.pasaporte
+              LEFT JOIN maleta m ON m.id_boleto = b.id_boleto
               WHERE b.id_itinerario = @id AND b.ya_checkin = true
               GROUP BY p.pasaporte, p.nombre, p.ap1", conn);
         cmdPax.Parameters.AddWithValue("id", idItinerario);

@@ -24,6 +24,13 @@ public class CheckinController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("itinerario/{idItinerario}")]
+    public async Task<IActionResult> GetPasajerosPorItinerario(int idItinerario)
+    {
+        var result = await _checkintService.GetPasajerosPorItinerario(idItinerario);
+        return Ok(result);
+    }
+
     [HttpPut("{idBoleto}")]
     public async Task<IActionResult> Checkin(int idBoleto, [FromBody] CheckinRequestDTO dto)
     {
