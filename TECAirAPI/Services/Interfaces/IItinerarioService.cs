@@ -10,4 +10,5 @@ public interface IItinerarioService
     Task<IEnumerable<Itinerario>> Abrir(ItinerarioDTO dto);
     Task Cerrar(int id);
     Task<ResumenCierreDTO> GetResumenCierre(int idItinerario);
+    Task<IEnumerable<ItinerarioAbiertoDTO>> GetAbiertos(int idRuta);
 }

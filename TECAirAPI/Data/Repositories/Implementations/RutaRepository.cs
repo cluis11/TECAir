@@ -161,10 +161,18 @@ public class RutaRepository : IRutaRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
 
-        // 1 - Cerrar itinerarios activos
-        await CerrarItinerariosDeRuta(conn, idRuta);
+        // Validar que no haya itinerarios abiertos
+        using (var cmdValidar = new NpgsqlCommand(
+            @"SELECT COUNT(*) FROM itinerario i
+              JOIN vuelo v ON i.id_vuelo = v.id_vuelo
+              WHERE v.id_ruta = @idRuta AND i.estado = 'abierto'", conn))
+        {
+            cmdValidar.Parameters.AddWithValue("idRuta", idRuta);
+            var count = (long)await cmdValidar.ExecuteScalarAsync();
+            if (count > 0) return false; // hay itinerarios abiertos
+        }
 
-        // 2 - asiento_itinerario
+        // asiento_itinerario
         using (var cmd = new NpgsqlCommand(
             @"DELETE FROM asiento_itinerario 
               WHERE id_itinerario IN (
@@ -176,7 +184,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 3 - boleto
+        // boleto
         using (var cmd = new NpgsqlCommand(
             @"DELETE FROM boleto 
               WHERE id_itinerario IN (
@@ -188,7 +196,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 4 - itinerario
+        // itinerario
         using (var cmd = new NpgsqlCommand(
             @"DELETE FROM itinerario 
               WHERE id_vuelo IN (
@@ -198,7 +206,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 5 - promocion
+        // promocion
         using (var cmd = new NpgsqlCommand(
             "DELETE FROM promocion WHERE id_ruta = @idRuta", conn))
         {
@@ -206,7 +214,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 6 - vuelo
+        // vuelo
         using (var cmd = new NpgsqlCommand(
             "DELETE FROM vuelo WHERE id_ruta = @idRuta", conn))
         {
@@ -214,7 +222,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 7 - ruta
+        // ruta
         using (var cmd = new NpgsqlCommand(
             "DELETE FROM ruta WHERE id_ruta = @idRuta", conn))
         {
@@ -258,10 +266,16 @@ public class RutaRepository : IRutaRepository
         using var conn = _db.GetConnection();
         await conn.OpenAsync();
 
-        // 1 - Cerrar itinerarios activos del vuelo
-        await CerrarItinerariosDeVuelo(conn, idVuelo);
+        // Validar que no haya itinerarios abiertos para este vuelo
+        using (var cmdValidar = new NpgsqlCommand(
+            "SELECT COUNT(*) FROM itinerario WHERE id_vuelo = @idVuelo AND estado = 'abierto'", conn))
+        {
+            cmdValidar.Parameters.AddWithValue("idVuelo", idVuelo);
+            var count = (long)await cmdValidar.ExecuteScalarAsync();
+            if (count > 0) return false;
+        }
 
-        // 2 - asiento_itinerario
+        // asiento_itinerario
         using (var cmd = new NpgsqlCommand(
             @"DELETE FROM asiento_itinerario 
               WHERE id_itinerario IN (
@@ -271,7 +285,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 3 - boleto
+        // boleto
         using (var cmd = new NpgsqlCommand(
             @"DELETE FROM boleto 
               WHERE id_itinerario IN (
@@ -281,7 +295,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 4 - itinerario
+        // itinerario
         using (var cmd = new NpgsqlCommand(
             "DELETE FROM itinerario WHERE id_vuelo = @idVuelo", conn))
         {
@@ -289,7 +303,7 @@ public class RutaRepository : IRutaRepository
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // 5 - vuelo
+        // vuelo
         using (var cmd = new NpgsqlCommand(
             "DELETE FROM vuelo WHERE id_vuelo = @idVuelo", conn))
         {
@@ -317,23 +331,6 @@ public class RutaRepository : IRutaRepository
             vuelos.Add(MapVuelo(reader));
         }
         return vuelos;
-    }
-
-    private async Task CerrarItinerariosDeRuta(NpgsqlConnection conn, int idRuta)
-    {
-        using var cmd = new NpgsqlCommand(
-            "UPDATE itinerario SET estado = 'cerrado' " +
-            "WHERE id_vuelo IN (SELECT id_vuelo FROM vuelo WHERE id_ruta = @idRuta)", conn);
-        cmd.Parameters.AddWithValue("idRuta", idRuta);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    private async Task CerrarItinerariosDeVuelo(NpgsqlConnection conn, int idVuelo)
-    {
-        using var cmd = new NpgsqlCommand(
-            "UPDATE itinerario SET estado = 'cerrado' WHERE id_vuelo = @idVuelo", conn);
-        cmd.Parameters.AddWithValue("idVuelo", idVuelo);
-        await cmd.ExecuteNonQueryAsync();
     }
 
     private Ruta MapRuta(NpgsqlDataReader reader)

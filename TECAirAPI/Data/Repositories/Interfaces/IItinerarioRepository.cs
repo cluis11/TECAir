@@ -13,4 +13,5 @@ public interface IItinerarioRepository
     Task<IEnumerable<AsientoDTO>> GetAsientos(int id);
     Task<IEnumerable<Itinerario>> AbrirVuelos(ItinerarioDTO dto);
     Task<ResumenCierreDTO> GetResumenCierre(int idItinerario);
+    Task<IEnumerable<ItinerarioAbiertoDTO>> GetAbiertos(int idRuta);
 }

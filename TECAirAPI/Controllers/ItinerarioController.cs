@@ -52,4 +52,11 @@ public class ItinerarioController: ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+
+    [HttpGet("abiertos")]
+    public async Task<IActionResult> GetAbiertos(int idRuta)
+    {
+        var result = await _itinerarioService.GetAbiertos(idRuta);
+        return Ok(result);
+    }
 }

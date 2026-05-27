@@ -61,7 +61,7 @@ public class RutaController : ControllerBase
     public async Task<IActionResult> Eliminar(int id)
     {
         var result = await _rutaService.EliminarRuta(id);
-        if (!result) return NotFound();
+        if (!result) return BadRequest("No se puede eliminar: existen itinerarios abiertos.");
         return Ok();
     }
 
@@ -83,7 +83,7 @@ public class RutaController : ControllerBase
     public async Task<IActionResult> EliminarVuelo(int idVuelo)
     {
         var result = await _rutaService.EliminarVuelo(idVuelo);
-        if (!result) return NotFound();
+        if (!result) return BadRequest("No se puede eliminar: existen itinerarios abiertos.");
         return Ok();
     }
 }

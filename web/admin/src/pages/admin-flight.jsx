@@ -10,8 +10,8 @@ const AperturaVuelos = () => {
   const [rutaSeleccionada, setRutaSeleccionada] = useState(null);
   const [puertas, setPuertas] = useState({});
   const [tramosForm, setTramosForm] = useState([]);
-  const [vistaActiva, setVistaActiva] = useState('apertura'); // 'apertura' | 'cierre'
-  const [busquedaCierre, setBusquedaCierre] = useState({ idRuta: '', fecha: '' });
+  const [vistaActiva, setVistaActiva] = useState('apertura');
+  const [rutaCierre, setRutaCierre] = useState('');
   const [itinerariosAbiertos, setItinerariosAbiertos] = useState([]);
   const [resumenCierre, setResumenCierre] = useState(null);
 
@@ -47,7 +47,7 @@ const AperturaVuelos = () => {
       const data = await res.json();
       setPuertas(prev => ({ ...prev, [idAeropuerto]: data }));
     } catch (error) {
-      console.error(`Error al cargar puertas:`, error);
+      console.error('Error al cargar puertas:', error);
     }
   };
 
@@ -118,28 +118,25 @@ const AperturaVuelos = () => {
 
   const handleBuscarItinerarios = async (e) => {
     e.preventDefault();
-    const ruta = rutas.find(r => r.id_ruta === parseInt(busquedaCierre.idRuta));
-    if (!ruta) return;
+    if (!rutaCierre) return;
     try {
-      const res = await fetch(
-        `${API_BASE}/itinerario/buscar?idOrigen=${ruta.id_origen}&idDestino=${ruta.id_destino}&fecha=${busquedaCierre.fecha}&pasajeros=1`
-      );
+      const res = await fetch(`${API_BASE}/itinerario/abiertos?idRuta=${rutaCierre}`);
       const data = await res.json();
-      const itinerarios = data.flatMap(resultado =>
-        resultado.vuelos.map(v => ({
-          idItinerario: v.idItinerario,
-          ciudadOrigen: v.ciudadOrigen,
-          ciudadDestino: v.ciudadDestino,
-          salida: v.salida,
-          llegada: v.llegada,
-          puerta: v.puertaEmbarque,
-          asientosLibres: v.asientosLibres
-        }))
-      );
+      const itinerarios = data.map(it => ({
+        idItinerario:   it.idItinerario,
+        ciudadOrigen:   it.ciudadOrigen,
+        ciudadDestino:  it.ciudadDestino,
+        fecha:          it.fecha,
+        salida:         it.salida,
+        llegada:        it.llegada,
+        puerta:         it.puertaEmbarque,
+        asientosLibres: it.asientosLibres
+      }));
       setItinerariosAbiertos(itinerarios);
-      if (itinerarios.length === 0) alert('No hay itinerarios abiertos para esa ruta y fecha.');
+      if (itinerarios.length === 0) alert('No hay itinerarios abiertos para esta ruta.');
     } catch (error) {
       alert('No se pudo conectar con el servidor.');
+      console.error(error);
     }
   };
 
@@ -162,7 +159,7 @@ const AperturaVuelos = () => {
   return (
     <div className="form-container">
 
-      {/* Tabs apertura / cierre */}
+      {/* Tabs */}
       <div className="d-flex gap-3 mb-4">
         <button
           type="button"
@@ -190,7 +187,6 @@ const AperturaVuelos = () => {
 
           <form className="form-grid" onSubmit={handleSubmitApertura}>
 
-            {/* Selector de ruta */}
             <div className="input-field" style={{ gridColumn: 'span 2' }}>
               <label>Ruta</label>
               <select onChange={handleSeleccionarRuta} required defaultValue="">
@@ -203,11 +199,8 @@ const AperturaVuelos = () => {
               </select>
             </div>
 
-            {/* Campos por tramo */}
             {tramosForm.map((tramo, index) => (
               <React.Fragment key={tramo.idVuelo}>
-
-                {/* Separador de tramo */}
                 <div style={{ gridColumn: 'span 2', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '4px' }}>
                   <p style={{ fontWeight: '700', color: '#0d6efd', marginBottom: '0', fontSize: '0.9rem' }}>
                     Tramo {index + 1} — {getNombreAeropuerto(tramo.idOrigen)} → {getNombreAeropuerto(tramo.idDestino)}
@@ -260,7 +253,6 @@ const AperturaVuelos = () => {
                     required
                   />
                 </div>
-
               </React.Fragment>
             ))}
 
@@ -279,15 +271,15 @@ const AperturaVuelos = () => {
         <>
           <h2>Cierre de Vuelos</h2>
           <p style={{ color: '#8892b0', fontSize: '0.9rem', marginBottom: '25px' }}>
-            Busque itinerarios abiertos por ruta y fecha para cerrarlos manualmente.
+            Seleccione una ruta para ver sus itinerarios abiertos y cerrarlos manualmente.
           </p>
 
           <form className="form-grid" onSubmit={handleBuscarItinerarios}>
-            <div className="input-field">
+            <div className="input-field" style={{ gridColumn: 'span 2' }}>
               <label>Ruta</label>
               <select
-                value={busquedaCierre.idRuta}
-                onChange={e => setBusquedaCierre(prev => ({ ...prev, idRuta: e.target.value }))}
+                value={rutaCierre}
+                onChange={e => { setRutaCierre(e.target.value); setItinerariosAbiertos([]); }}
                 required
               >
                 <option value="">-- Seleccione una ruta --</option>
@@ -297,16 +289,6 @@ const AperturaVuelos = () => {
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="input-field">
-              <label>Fecha</label>
-              <input
-                type="date"
-                value={busquedaCierre.fecha}
-                onChange={e => setBusquedaCierre(prev => ({ ...prev, fecha: e.target.value }))}
-                required
-              />
             </div>
 
             <button type="submit" className="btn-save">
@@ -320,6 +302,7 @@ const AperturaVuelos = () => {
                 <thead className="table-light">
                   <tr>
                     <th>Tramo</th>
+                    <th>Fecha</th>
                     <th>Salida</th>
                     <th>Llegada</th>
                     <th>Puerta</th>
@@ -331,6 +314,7 @@ const AperturaVuelos = () => {
                   {itinerariosAbiertos.map(it => (
                     <tr key={it.idItinerario}>
                       <td className="fw-semibold">{it.ciudadOrigen} → {it.ciudadDestino}</td>
+                      <td>{it.fecha}</td>
                       <td>{it.salida?.substring(0, 5)}</td>
                       <td>{it.llegada?.substring(0, 5)}</td>
                       <td>{it.puerta}</td>

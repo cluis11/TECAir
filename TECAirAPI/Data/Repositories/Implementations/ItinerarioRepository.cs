@@ -232,6 +232,41 @@ public class ItinerarioRepository : IItinerarioRepository
         return resumen;
     }
 
+    public async Task<IEnumerable<ItinerarioAbiertoDTO>> GetAbiertos(int idRuta)
+    {
+        var resultados = new List<ItinerarioAbiertoDTO>();
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            @"SELECT i.id_itinerario, ao.ciudad, ad.ciudad, i.fecha, i.salida, i.llegada, i.puerta_embarque,
+                     COUNT(CASE WHEN ai.estado = 'libre' THEN 1 END) AS asientos_libres
+              FROM itinerario i
+              JOIN vuelo v ON v.id_vuelo = i.id_vuelo
+              JOIN aeropuerto ao ON ao.id_aeropuerto = v.id_origen
+              JOIN aeropuerto ad ON ad.id_aeropuerto = v.id_destino
+              LEFT JOIN asiento_itinerario ai ON ai.id_itinerario = i.id_itinerario
+              WHERE v.id_ruta = @idRuta AND i.estado = 'abierto'
+              GROUP BY i.id_itinerario, ao.ciudad, ad.ciudad, i.fecha, i.salida, i.llegada, i.puerta_embarque
+              ORDER BY i.fecha, i.salida", conn);
+        cmd.Parameters.AddWithValue("idRuta", idRuta);
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            resultados.Add(new ItinerarioAbiertoDTO
+            {
+                IdItinerario   = reader.GetInt32(0),
+                CiudadOrigen   = reader.GetString(1),
+                CiudadDestino  = reader.GetString(2),
+                Fecha          = reader.GetDateTime(3).ToString("yyyy-MM-dd"),
+                Salida         = reader.GetTimeSpan(4).ToString(@"hh\:mm"),
+                Llegada        = reader.GetTimeSpan(5).ToString(@"hh\:mm"),
+                PuertaEmbarque = reader.GetString(6),
+                AsientosLibres = (int)reader.GetInt64(7)
+            });
+        }
+        return resultados;
+    }
+
     //----------------------------------------------
     // Parte Interna
     //----------------------------------------------

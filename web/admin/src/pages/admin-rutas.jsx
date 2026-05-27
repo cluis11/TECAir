@@ -131,6 +131,8 @@ const GestionRutas = () => {
         alert('Ruta eliminada con exito.');
         fetchRutas();
         if (rutaExpandida === idRuta) setRutaExpandida(null);
+      } else if (res.status === 400) {
+        alert('No se puede eliminar esta ruta porque tiene vuelos abiertos. Cierre los itinerarios activos primero.');
       } else if (res.status === 404) {
         alert('Ruta no encontrada.');
       } else {

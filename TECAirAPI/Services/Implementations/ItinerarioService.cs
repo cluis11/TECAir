@@ -38,4 +38,9 @@ public class ItinerarioService : IItinerarioService
     {
         return await _itinerarioRepo.GetResumenCierre(idItinerario);
     }
+
+    public async Task<IEnumerable<ItinerarioAbiertoDTO>> GetAbiertos(int idRuta)
+    {
+        return await _itinerarioRepo.GetAbiertos(idRuta);
+    }
 }
