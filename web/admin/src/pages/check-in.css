@@ -1,0 +1,118 @@
+/* ESTILOS PARA CHECK IN */
+
+/* Contenedor Principal*/
+.form-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 40px;
+  border-radius: 20px;
+  max-width: 750px;
+  margin: 40px auto;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08); 
+}
+
+/* Título del Formulario */
+.form-container h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: -0.5px;
+}
+
+/* Grid del Formulario */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Bloque de cada campo */
+.input-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* Etiquetas*/
+.input-field label {
+  color: #475569; 
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Inputs, Selects y Textareas Estilizados */
+.input-field input, 
+.input-field select, 
+.input-field textarea {
+  background: #f8fafc; 
+  border: 1px solid #cbd5e1;
+  padding: 14px 16px;
+  border-radius: 10px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.25s ease-in-out;
+}
+
+/* Efecto Focus: Borde azul AIRTec con un aura suave */
+.input-field input:focus, 
+.input-field select:focus {
+  border-color: #0d6efd;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15); /* Efecto de anillo moderno */
+}
+
+/* Marcador de posición (Placeholder) */
+.input-field input::placeholder {
+  color: #94a3b8;
+}
+
+/* Botón de Guardar / Procesar Check-in */
+.btn-save {
+  grid-column: span 2;
+  background: #0d6efd; /* Azul corporativo */
+  color: #ffffff;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+}
+
+/* Efecto Hover para el Botón */
+.btn-save:hover {
+  background: #0b5ed7;
+  transform: translateY(-1px); /* Efecto sutil de elevación */
+  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.35);
+}
+
+/* Efecto Click en el Botón */
+.btn-save:active {
+  transform: translateY(1px);
+}
+
+/* Ajuste Responsivo para Celulares */
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr; /* Pasa a 1 sola columna en pantallas chicas */
+    gap: 16px;
+  }
+  .btn-save {
+    grid-column: span 1;
+  }
+  .form-container {
+    padding: 24px;
+    margin: 15px;
+  }
+}

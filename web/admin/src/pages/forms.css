@@ -1,0 +1,100 @@
+/* =========================================
+   PLANTILLA DE ESTILOS PARA ADMINVIEW 
+   ========================================= */
+
+.form-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 35px;
+  border-radius: 12px;
+  max-width: 800px;
+  margin: 30px auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
+}
+
+/* Título del formulario */
+.form-container h2 {
+  color: #1e293b;
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 1.75rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; 
+  gap: 20px; 
+}
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.input-field label {
+  color: #475569; 
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input-field input, 
+.input-field select, 
+.input-field textarea {
+  background: #f8fafc; 
+  border: 1px solid #cbd5e1;
+  padding: 12px 14px;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.input-field input:hover, 
+.input-field select:hover, 
+.input-field textarea:hover {
+  border-color: #94a3b8;
+}
+
+.input-field input:focus, 
+.input-field select:focus,
+.input-field textarea:focus {
+  border-color: #0d6efd;
+  background: #ffffff; 
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15); 
+}
+
+
+.btn-save {
+  grid-column: span 2; 
+  background: #0d6efd;
+  color: #ffffff;
+  border: none;
+  padding: 14px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 15px;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+
+.btn-save:hover {
+  background: #0b5ed7;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+  transform: translateY(-1px); 
+}
+
+.btn-save:active {
+  transform: translateY(0);
+}
