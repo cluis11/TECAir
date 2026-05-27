@@ -28,7 +28,7 @@ public class MaletaService : IMaletaService
 
     public async Task<Maleta> AsignarMaleta(Maleta maleta)
     {
-        // Validar que el pasajero tenga al menos un boleto con ya_checkin = true
+        // Validar que el boleto exista y tenga ya_checkin = true
         var boletos = await _boletoRepo.GetByPasaporteCheckin(maleta.Pasaporte);
         if (boletos == null || !boletos.Any())
             return null;

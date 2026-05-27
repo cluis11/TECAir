@@ -6,6 +6,7 @@ public class PasajeroMaletaDTO
     public string Nombre { get; set; } = string.Empty;
     public string Ap1 { get; set; } = string.Empty;
     public int IdItinerario { get; set; }
+    public int IdBoleto { get; set; }
     public List<MaletaDTO> Maletas { get; set; } = new();
 }
 

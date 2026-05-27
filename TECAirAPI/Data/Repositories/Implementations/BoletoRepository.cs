@@ -170,6 +170,20 @@ public class BoletoRepository : IBoletoRepository
         };
     }
     
+    public async Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+        using var cmd = new NpgsqlCommand(
+            "SELECT id_pasajero FROM boleto WHERE id_itinerario = @idItinerario", conn);
+        cmd.Parameters.AddWithValue("idItinerario", idItinerario);
+        using var reader = await cmd.ExecuteReaderAsync();
+        var pasaportes = new List<string>();
+        while (await reader.ReadAsync())
+            pasaportes.Add(reader.GetString(0));
+        return pasaportes;
+    }
+
     // -----------------------------------------------
     // Parte interna
     // -----------------------------------------------

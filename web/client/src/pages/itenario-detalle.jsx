@@ -4,6 +4,8 @@ import { FaArrowLeft, FaUserPlus, FaUser } from 'react-icons/fa';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
 
+const API_BASE = process.env.REACT_APP_API_URL;
+
 const estadoInicialPasajero = {
     pasaporte: '',
     nombre: '',
@@ -21,7 +23,6 @@ const ItinerarioDetalle = () => {
 
     const cantPasajeros = busqueda?.pasajeros || 1;
 
-    // Pre-rellenar pasajero 1 si está logueado
     const pasajerosIniciales = Array.from({ length: cantPasajeros }, (_, i) => {
         if (i === 0 && usuario) {
             return {
@@ -37,6 +38,8 @@ const ItinerarioDetalle = () => {
     });
 
     const [pasajeros, setPasajeros] = useState(pasajerosIniciales);
+    const [errores, setErrores] = useState([]);
+    const [validando, setValidando] = useState(false);
 
     const handleChange = (index, campo, valor) => {
         const nuevos = [...pasajeros];
@@ -44,11 +47,49 @@ const ItinerarioDetalle = () => {
         setPasajeros(nuevos);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        navigate('/pagar', {
-            state: { resultado, busqueda, pasajeros }
-        });
+        setErrores([]);
+
+        // Validar duplicados en el mismo formulario
+        const pasaportes = pasajeros.map(p => p.pasaporte.trim());
+        const duplicadosLocales = pasaportes.filter((p, i) => pasaportes.indexOf(p) !== i);
+        if (duplicadosLocales.length > 0) {
+            setErrores([`El pasaporte ${duplicadosLocales[0]} aparece más de una vez en el formulario.`]);
+            return;
+        }
+
+        // Validar contra la base — verificar que ningún pasaporte ya tenga boleto en los itinerarios del vuelo
+        setValidando(true);
+        try {
+            const idsPorTramo = resultado.vuelos.map(v => v.idItinerario);
+            const nuevosErrores = [];
+
+            for (const idItinerario of idsPorTramo) {
+                const res = await fetch(`${API_BASE}/checkin/itinerario/${idItinerario}`);
+                if (!res.ok) continue;
+                const pasaportesExistentes = await res.json();
+
+                for (const pasaporte of pasaportes) {
+                    if (pasaportesExistentes.includes(pasaporte)) {
+                        nuevosErrores.push(`El pasaporte ${pasaporte} ya tiene una reserva para este vuelo.`);
+                    }
+                }
+            }
+
+            if (nuevosErrores.length > 0) {
+                setErrores(nuevosErrores);
+                return;
+            }
+
+            navigate('/pagar', { state: { resultado, busqueda, pasajeros } });
+
+        } catch (error) {
+            console.error('Error al validar pasaportes:', error);
+            setErrores(['No se pudo validar la información. Intente de nuevo.']);
+        } finally {
+            setValidando(false);
+        }
     };
 
     return (
@@ -57,7 +98,6 @@ const ItinerarioDetalle = () => {
 
             <div className="container mt-5 mb-5" style={{ maxWidth: '700px' }}>
 
-                {/* Header */}
                 <div className="d-flex align-items-center gap-3 mb-4">
                     <button className="btn btn-outline-primary rounded-pill" onClick={() => navigate(-1)}>
                         <FaArrowLeft className="me-2" />Volver
@@ -148,8 +188,18 @@ const ItinerarioDetalle = () => {
                         </div>
                     ))}
 
-                    <button type="submit" className="btn btn-primary w-100 py-3 fw-bold rounded-3 fs-5">
-                        Continuar al Pago
+                    {errores.length > 0 && (
+                        <div className="alert alert-danger mb-3">
+                            {errores.map((err, i) => <p key={i} className="mb-0">{err}</p>)}
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="btn btn-primary w-100 py-3 fw-bold rounded-3 fs-5"
+                        disabled={validando}
+                    >
+                        {validando ? 'Validando...' : 'Continuar al Pago'}
                     </button>
                 </form>
             </div>

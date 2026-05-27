@@ -9,4 +9,5 @@ public interface IBoletoRepository
     Task<CheckinResponseDTO> UpdateCheckin(int idBoleto, int idAsiento);
     Task<IEnumerable<string>> GetByPasaporteCheckin(string pasaporte);
     Task<PaseAbordarDTO?> GetPaseAbordar(int idBoleto);
+    Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario);
 }
