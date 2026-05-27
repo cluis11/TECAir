@@ -110,6 +110,66 @@ public class BoletoRepository : IBoletoRepository
         return boletos;
     }
 
+    public async Task<PaseAbordarDTO?> GetPaseAbordar(int idBoleto)
+    {
+        using var conn = _db.GetConnection();
+        await conn.OpenAsync();
+ 
+        using var cmd = new NpgsqlCommand(@"
+            SELECT
+                b.id_boleto,
+                b.id_reserva,
+                p.nombre || ' ' || p.ap1 || COALESCE(' ' || p.ap2, '') AS nombre_completo,
+                p.pasaporte,
+                v.id_vuelo,
+                ao.ciudad  AS ciudad_origen,
+                ad.ciudad  AS ciudad_destino,
+                ao.codigo  AS codigo_origen,
+                ad.codigo  AS codigo_destino,
+                i.fecha,
+                i.salida,
+                i.llegada,
+                a.fila,
+                a.columna,
+                i.puerta_embarque
+            FROM boleto b
+            JOIN pasajero    p  ON p.pasaporte      = b.id_pasajero
+            JOIN itinerario  i  ON i.id_itinerario  = b.id_itinerario
+            JOIN vuelo       v  ON v.id_vuelo        = i.id_vuelo
+            JOIN aeropuerto  ao ON ao.id_aeropuerto  = v.id_origen
+            JOIN aeropuerto  ad ON ad.id_aeropuerto  = v.id_destino
+            LEFT JOIN asiento a ON a.id_asiento      = b.id_asiento
+            WHERE b.id_boleto = @idBoleto
+        ", conn);
+        cmd.Parameters.AddWithValue("idBoleto", idBoleto);
+ 
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync()) return null;
+ 
+        var fila    = reader.IsDBNull(12) ? "" : reader.GetString(12);
+        var columna = reader.IsDBNull(13) ? "" : reader.GetString(13);
+        var idVuelo = reader.GetInt32(4);
+ 
+        return new PaseAbordarDTO
+        {
+            IdBoleto       = reader.GetInt32(0),
+            IdReserva      = reader.GetInt32(1),
+            NombreCompleto = reader.GetString(2).Trim(),
+            Pasaporte      = reader.GetString(3),
+            NumeroVuelo    = $"TC-{idVuelo}",
+            CiudadOrigen   = reader.GetString(5),
+            CiudadDestino  = reader.GetString(6),
+            CodigoOrigen   = reader.GetString(7),
+            CodigoDestino  = reader.GetString(8),
+            Fecha          = reader.IsDBNull(9)  ? "" : reader.GetDateTime(9).ToString("yyyy-MM-dd"),
+            HoraSalida     = reader.IsDBNull(10) ? "" : reader.GetTimeSpan(10).ToString(@"hh\:mm"),
+            HoraLlegada    = reader.IsDBNull(11) ? "" : reader.GetTimeSpan(11).ToString(@"hh\:mm"),
+            Asiento        = (fila != "" && columna != "") ? $"{fila}{columna}" : "N/A",
+            PuertaEmbarque = reader.IsDBNull(14) ? "" : reader.GetString(14),
+            Clase          = "Económica"
+        };
+    }
+    
     public async Task<IEnumerable<string>> GetPasajerosPorItinerario(int idItinerario)
     {
         using var conn = _db.GetConnection();
